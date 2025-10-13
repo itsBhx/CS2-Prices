@@ -507,15 +507,27 @@ useEffect(() => {
                 </thead>
                 <tbody>
                   {(data[activeTab] || []).map((row, i) => {
-                    const total = (row.price || 0) * (row.qty || 0);
-                    const fluct = row.fluctPct ?? 0;
-                    const tint = hexToRgba(row.colorHex || "", 0.5);
-                    const color =
-                      fluct > 0
-                        ? "text-green-400"
-                        : fluct < 0
-                        ? "text-red-400"
-                        : "text-neutral-400";
+const total = (row.price || 0) * (row.qty || 0);
+const tint = hexToRgba(row.colorHex || "", 0.5);
+
+// Fluctuation formatting
+let fluctDisplay = "—";
+let color = "text-neutral-400";
+if (typeof row.fluctPct === "number") {
+  color =
+    row.fluctPct > 0
+      ? "text-green-400"
+      : row.fluctPct < 0
+      ? "text-red-400"
+      : "text-neutral-300";
+
+  // keep natural minus from toFixed(); only add + for positives
+  const signed =
+    row.fluctPct > 0
+      ? `+${row.fluctPct.toFixed(2)}`
+      : row.fluctPct.toFixed(2); // includes the minus automatically
+  fluctDisplay = `${signed} %`;
+}
                     return (
                       <tr
                         key={i}
@@ -584,10 +596,7 @@ useEffect(() => {
                         <td className="p-2 text-center text-green-400">
                           {fmtMoney(row.price || 0)}
                         </td>
-                        <td className={`p-2 text-center ${color}`}>
-                          {sign(fluct)}
-                          {Math.abs(fluct).toFixed(2)} %
-                        </td>
+                        <td className={`p-2 text-center ${color}`}>{fluctDisplay}</td>
                         <td className="p-2 text-center text-blue-300">{fmtMoney(total)}</td>
                         <td className="p-2 text-center">
                           <button
