@@ -460,17 +460,36 @@ const applyColorToRow = (tab, i, hex) => {
   <nav className="flex flex-wrap gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
     {tabs
       .filter((t) => t !== "Dashboard")
-      .map((tab) => (
+      .map((tab, idx) => (
         <div
           key={tab}
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData("text/plain", idx);
+            e.currentTarget.style.opacity = 0.5;
+          }}
+          onDragEnd={(e) => (e.currentTarget.style.opacity = 1)}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const from = Number(e.dataTransfer.getData("text/plain"));
+            const to = idx;
+            if (from === to) return;
+            const reordered = [...tabs];
+            const [moved] = reordered.splice(from, 1);
+            reordered.splice(to, 0, moved);
+            setTabs(reordered);
+            localStorage.setItem("cs2-tabs", JSON.stringify(reordered));
+          }}
           onClick={() => setActiveTab(tab)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition select-none ${
             activeTab === tab
               ? "bg-blue-800 shadow-md shadow-black/30"
               : "bg-neutral-800 hover:bg-neutral-700"
           }`}
+          style={{ userSelect: "none" }}
         >
-          <span>{tab}</span>
+          <span className="text-sm">{tab}</span>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -482,6 +501,13 @@ const applyColorToRow = (tab, i, hex) => {
           </button>
         </div>
       ))}
+
+    <button
+      onClick={addTab}
+      className="ml-2 bg-green-800 hover:bg-green-700 px-3 py-1.5 rounded-lg text-sm font-semibold"
+    >
+      ＋ Add Tab
+    </button>
   </nav>
 )}
 
