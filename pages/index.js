@@ -184,7 +184,7 @@ useEffect(() => {
         if (isCancelled) return;
         const row = rows[i];
         const name = row?.name?.trim();
-        if (!name || row.locked) continue;
+        if (!name) continue; // locked rows still get price updates
 
         try {
           const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
