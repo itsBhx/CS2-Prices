@@ -257,23 +257,26 @@ const closeColorMenu = () =>
 useEffect(() => {
   if (!colorMenu.open) return;
 
-  const onDocClick = (e) => {
+  const onBodyClick = (e) => {
     const menuEl = document.getElementById("color-menu-portal");
-    // ✅ ignore clicks inside the color menu
-    if (menuEl && menuEl.contains(e.target)) return;
+    if (!menuEl) return;
+    if (menuEl.contains(e.target)) return; // click inside → ignore
     closeColorMenu();
   };
 
   const onScroll = () => closeColorMenu();
   const onResize = () => closeColorMenu();
 
-  // ✅ document listener fixes instant close issue
-  document.addEventListener("click", onDocClick);
-  window.addEventListener("scroll", onScroll, true);
-  window.addEventListener("resize", onResize);
+  // 🧠 delay listener to avoid capturing the opening click
+  const t = setTimeout(() => {
+    document.body.addEventListener("click", onBodyClick);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+  }, 50);
 
   return () => {
-    document.removeEventListener("click", onDocClick);
+    clearTimeout(t);
+    document.body.removeEventListener("click", onBodyClick);
     window.removeEventListener("scroll", onScroll, true);
     window.removeEventListener("resize", onResize);
   };
