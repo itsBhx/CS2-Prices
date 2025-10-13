@@ -161,94 +161,98 @@ export default function Home() {
     setSnapshots(newSnaps);
   }, [grandTotal, totals, tabs, snapshots, settings.snapshotTimeHHMM]);
 
-/* -------------------------- Auto refresh system -------------------------- */
+/* -------------------------- Auto refresh system (persistent sequential) -------------------------- */
 useEffect(() => {
   if (!tabs.length) return;
+  let stop = false;
 
-  // clear previous timers
-  refreshTimerRef.current.forEach((t) => clearInterval(t));
-  refreshTimerRef.current = [];
+  const spacingMs = 3000; // 3s between each item
+  const intervalMin = settings.refreshMinutes || 30;
+  const intervalMs = intervalMin * 60 * 1000;
 
-  // --- Persistent refresh interval ---
-  const last = Number(localStorage.getItem("cs2-lastFullRefreshAt") || 0);
-  const interval = settings.refreshMinutes || 30;
-  const sinceLast = (Date.now() - last) / 60000;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  if (sinceLast < interval) {
-    console.log(`⏸ Skipping refresh — only ${sinceLast.toFixed(1)} min since last cycle`);
-    return;
-  }
+  const runLoop = async () => {
+    while (!stop) {
+      const lastRun = Number(localStorage.getItem("cs2-lastFullRefreshAt") || 0);
+      const sinceLast = Date.now() - lastRun;
 
-  // record start of new full refresh
-  localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
-  console.log(`🔄 Starting full refresh cycle (${interval} min interval)`);
-
-  const spacingMs = 3000; // delay between individual item requests
-
-  const refreshTab = async (tab) => {
-    if (tab === "Dashboard" || showSettings) return;
-    const rows = data[tab] || [];
-    if (!rows.length) return;
-
-    const updated = [...rows];
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const name = r?.name?.trim();
-      if (!name) continue;
-
-      try {
-        const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
-        const json = await res.json();
-        if (json.ok && json.lowest != null) {
-          const newPrice = Number(json.lowest);
-          const oldPrice = Number(r.price || 0);
-          const prevBase = r.prevPrice || oldPrice || newPrice;
-          const oldTotal = prevBase * (r.qty || 0);
-          const newTotal = newPrice * (r.qty || 0);
-          let fluctPct = 0;
-          if (oldTotal > 0) {
-            fluctPct = ((newTotal - oldTotal) / oldTotal) * 100;
-            fluctPct = Math.max(-300, Math.min(300, fluctPct)); // clamp
-          }
-          updated[i] = {
-            ...r,
-            prevPrice: prevBase > 0 ? prevBase : newPrice,
-            price: newPrice,
-            fluctPct,
-          };
-        }
-      } catch (err) {
-        console.warn("fetch error", name, err);
+      // ⏸ skip if not enough time has passed
+      if (sinceLast < intervalMs) {
+        const wait = intervalMs - sinceLast;
+        const waitMin = (wait / 60000).toFixed(1);
+        console.log(`⏸ Skipping refresh — ${waitMin} min until next cycle`);
+        await sleep(60 * 1000); // check again in 1 min
+        continue;
       }
 
-      // avoid 429s
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, spacingMs));
-    }
+      console.log(`🔄 Starting full refresh cycle (${intervalMin} min interval)`);
 
-    setData((prev) => ({ ...prev, [tab]: updated }));
-    console.log(`✅ Finished tab: ${tab}`);
+      for (const tab of tabs) {
+        if (tab === "Dashboard" || showSettings) continue;
+        const rows = data[tab] || [];
+        if (!rows.length) continue;
+
+        console.log(`▶ Fetching tab: ${tab}`);
+        const updated = [...rows];
+
+        for (let i = 0; i < rows.length; i++) {
+          if (stop) return;
+          const row = rows[i];
+          const name = row?.name?.trim();
+          if (!name) continue;
+
+          try {
+            const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
+            const json = await res.json();
+
+            if (json.ok && json.lowest != null) {
+              const newPrice = Number(json.lowest);
+              const oldPrice = Number(row.price || 0);
+              const base = row.prevPrice || oldPrice || newPrice;
+              let fluctPct = 0;
+
+              if (base > 0) {
+                fluctPct = ((newPrice - base) / base) * 100;
+                if (fluctPct > 300) fluctPct = 300;
+                if (fluctPct < -300) fluctPct = -300;
+              }
+
+              updated[i] = {
+                ...row,
+                prevPrice: base > 0 ? base : newPrice,
+                price: newPrice,
+                fluctPct,
+              };
+            }
+          } catch (err) {
+            console.warn("❌ Failed to fetch", name, err);
+          }
+
+          // wait between item requests
+          // eslint-disable-next-line no-await-in-loop
+          await sleep(spacingMs);
+        }
+
+        setData((prev) => ({ ...prev, [tab]: updated }));
+        console.log(`✅ Finished tab: ${tab}`);
+      }
+
+      setLastUpdatedAt(formatLisbonHM());
+      localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
+      console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
+
+      await sleep(intervalMs);
+    }
   };
 
-  // Run all tabs sequentially (no delay between tabs)
-  (async () => {
-    for (const tab of tabs) {
-      if (tab === "Dashboard") continue;
-      await refreshTab(tab);
-    }
+  runLoop();
 
-    console.log(`⏸ Waiting ${interval} min before next refresh cycle…`);
-    const next = setTimeout(() => {
-      localStorage.removeItem("cs2-lastFullRefreshAt");
-      window.location.reload(); // start next cycle cleanly
-    }, interval * 60 * 1000);
-    refreshTimerRef.current.push(next);
-  })();
-
-  return () => refreshTimerRef.current.forEach((t) => clearInterval(t));
+  return () => {
+    stop = true;
+  };
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [tabs, data, showSettings]);
-
 
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
