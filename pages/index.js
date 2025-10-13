@@ -245,53 +245,43 @@ const [linkMenu, setLinkMenu] = useState({
   }, [grandTotalNum, totals, tabs, dashSnap, todayKey, settings.snapshotTimeHHMM, snapshots]);
 
   /* -------------------------- Fetch & global refresh -------------------------- */
-  async function fetchPriceFor(tabName, rowIndex) {
-    const rows = data[tabName] || [];
-    const row = rows[rowIndex];
-    if (!row || !row.name?.trim()) return;
-    if (row.locked) return;
+async function fetchPriceFor(tabName, rowIndex) {
+  const currentData = data[tabName] || [];
+  const row = currentData[rowIndex];
+  if (!row || !row.name?.trim() || row.locked) return;
 
-    try {
-      const res = await fetch(`/api/price?name=${encodeURIComponent(row.name)}`);
-      const json = await res.json();
-      if (json.ok && json.lowest != null) {
-        const oldPrice = Number(row.price || 0);
-        const newPrice = Number(json.lowest);
+  try {
+    const res = await fetch(`/api/price?name=${encodeURIComponent(row.name)}`);
+    const json = await res.json();
+    if (!json.ok || json.lowest == null) return;
 
-        const updated = [...rows];
-        const hadPrev = isFinite(oldPrice) && oldPrice > 0;
-        let fluctPct = row.fluctPct ?? null;
-        if (hadPrev) {
-          const base = oldPrice || null;
-          if (base) {
-            fluctPct = ((newPrice - base) / base) * 100;
-          } else {
-            fluctPct = 0;
-          }
-        } else {
-          fluctPct = null; // show "—" until we have at least one previous price
-        }
+    const newPrice = Number(json.lowest);
+    const oldPrice = Number(row.price) || 0;
+    const samePrice = newPrice === oldPrice;
 
-        updated[rowIndex] = {
-          ...row,
-          prevPrice: hadPrev ? oldPrice : newPrice,
+    if (!samePrice) {
+      setData((prev) => {
+        const newTabRows = [...(prev[tabName] || [])];
+        const prevRow = newTabRows[rowIndex];
+        if (!prevRow) return prev;
+
+        const fluctPct =
+          oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
+
+        newTabRows[rowIndex] = {
+          ...prevRow,
+          prevPrice: oldPrice > 0 ? oldPrice : newPrice,
           price: newPrice,
           fluctPct,
         };
 
-        setData((prev) => ({ ...prev, [tabName]: updated }));
-      }
-    } catch (e) {
-      console.error("Fetch price error:", e);
+        return { ...prev, [tabName]: newTabRows };
+      });
     }
+  } catch (e) {
+    console.warn("fetchPriceFor error:", e);
   }
-
-  const handleNameBlur = (i) => {
-    if (showSettings) return;
-    const rows = data[activeTab] || [];
-    if (!rows[i] || rows[i].locked) return;
-    fetchPriceFor(activeTab, i);
-  };
+}
 
 // Improved global refresh system with staggered tabs + smarter updates
 useEffect(() => {
