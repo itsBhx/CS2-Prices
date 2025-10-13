@@ -268,6 +268,71 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [tabs.length, settings.refreshMinutes]);
 
+  /* -------------------------- Behavior Settings Component -------------------------- */
+  function BehaviorSettings({ settings, setSettings }) {
+    const [pendingSettings, setPendingSettings] = useState(settings);
+
+    useEffect(() => {
+      setPendingSettings(settings); // sync when reopening
+    }, [settings]);
+
+    const handleSave = () => {
+      setSettings(pendingSettings);
+      console.log("✅ Settings saved:", pendingSettings);
+    };
+
+    return (
+      <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-xl font-semibold mb-4">Behavior</h2>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-neutral-400 mb-1">
+              Snapshot time (WEST)
+            </label>
+            <input
+              type="time"
+              value={pendingSettings.snapshotTimeHHMM}
+              onChange={(e) =>
+                setPendingSettings({
+                  ...pendingSettings,
+                  snapshotTimeHHMM: e.target.value,
+                })
+              }
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-neutral-400 mb-1">
+              Auto refresh (min)
+            </label>
+            <input
+              type="number"
+              value={pendingSettings.refreshMinutes}
+              onChange={(e) =>
+                setPendingSettings({
+                  ...pendingSettings,
+                  refreshMinutes: Number(e.target.value),
+                })
+              }
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={handleSave}
+            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+          >
+            💾 Save Changes
+          </button>
+        </div>
+      </section>
+    );
+  }
+
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const rect = e.currentTarget.getBoundingClientRect();
@@ -420,7 +485,6 @@ const applyColorToRow = (tab, i, hex) => {
   </nav>
 )}
 
-
       <main className="p-6">
         {/* Dashboard */}
         {activeTab === "Dashboard" && !showSettings && (
@@ -472,132 +536,76 @@ const applyColorToRow = (tab, i, hex) => {
           </div>
         )}
 
-        {/* Settings */}
-        {showSettings && (
-          <div className="max-w-3xl mx-auto space-y-6">
-            <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-              <h2 className="text-xl font-semibold mb-4">Rarity Colors</h2>
-              <div className="space-y-3">
-                {settings.colors.map((c, idx) => (
-                  <div
-                    key={idx}
-                    className="grid md:grid-cols-[1fr,160px,80px,auto] gap-3 items-center bg-neutral-800/50 rounded-lg p-3"
-                  >
-                    <input
-                      value={c.name}
-                      onChange={(e) =>
-                        setSettings((p) => {
-                          const next = [...p.colors];
-                          next[idx].name = e.target.value;
-                          return { ...p, colors: next };
-                        })
-                      }
-                      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-                    />
-                    <input
-                      value={c.hex}
-                      onChange={(e) =>
-                        setSettings((p) => {
-                          const next = [...p.colors];
-                          next[idx].hex = e.target.value;
-                          return { ...p, colors: next };
-                        })
-                      }
-                      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-                    />
-                    <div className="h-6 w-10 rounded border border-neutral-700" style={{ backgroundColor: c.hex }} />
-                    <button
-                      onClick={() =>
-                        setSettings((p) => {
-                          const next = [...p.colors];
-                          next.splice(idx, 1);
-                          return { ...p, colors: next };
-                        })
-                      }
-                      className="text-red-400 hover:text-red-500 text-sm"
-                    >
-                      🗑
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={() =>
-                  setSettings((p) => ({
-                    ...p,
-                    colors: [...p.colors, { name: "New", hex: "#ffffff" }],
-                  }))
-                }
-                className="mt-3 bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
-              >
-                ＋ Add Color
-              </button>
-            </section>
-
-            <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-  <h2 className="text-xl font-semibold mb-4">Behavior</h2>
-
-  {/* Local copy of settings so user can edit before saving */}
-  {(() => {
-    const [pendingSettings, setPendingSettings] = useState(settings);
-    const handleSave = () => {
-      setSettings(pendingSettings);
-      alert("✅ Settings saved!");
-    };
-
-    return (
-      <>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Snapshot time (WEST)
-            </label>
-            <input
-              type="time"
-              value={pendingSettings.snapshotTimeHHMM}
-              onChange={(e) =>
-                setPendingSettings({
-                  ...pendingSettings,
-                  snapshotTimeHHMM: e.target.value,
-                })
-              }
-              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Auto refresh (min)
-            </label>
-            <input
-              type="number"
-              value={pendingSettings.refreshMinutes}
-              onChange={(e) =>
-                setPendingSettings({
-                  ...pendingSettings,
-                  refreshMinutes: Number(e.target.value),
-                })
-              }
-              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-6">
-          <button
-            onClick={handleSave}
-            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+{/* Settings */}
+{showSettings && (
+  <div className="max-w-3xl mx-auto space-y-6">
+    {/* Rarity Colors */}
+    <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+      <h2 className="text-xl font-semibold mb-4">Rarity Colors</h2>
+      <div className="space-y-3">
+        {settings.colors.map((c, idx) => (
+          <div
+            key={idx}
+            className="grid md:grid-cols-[1fr,160px,80px,auto] gap-3 items-center bg-neutral-800/50 rounded-lg p-3"
           >
-            💾 Save Changes
-          </button>
-        </div>
-      </>
-    );
-  })()}
-</section>
-
+            <input
+              value={c.name}
+              onChange={(e) =>
+                setSettings((p) => {
+                  const next = [...p.colors];
+                  next[idx].name = e.target.value;
+                  return { ...p, colors: next };
+                })
+              }
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+            <input
+              value={c.hex}
+              onChange={(e) =>
+                setSettings((p) => {
+                  const next = [...p.colors];
+                  next[idx].hex = e.target.value;
+                  return { ...p, colors: next };
+                })
+              }
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+            <div
+              className="h-6 w-10 rounded border border-neutral-700"
+              style={{ backgroundColor: c.hex }}
+            />
+            <button
+              onClick={() =>
+                setSettings((p) => {
+                  const next = [...p.colors];
+                  next.splice(idx, 1);
+                  return { ...p, colors: next };
+                })
+              }
+              className="text-red-400 hover:text-red-500 text-sm"
+            >
+              🗑
+            </button>
           </div>
-        )}
+        ))}
+      </div>
+      <button
+        onClick={() =>
+          setSettings((p) => ({
+            ...p,
+            colors: [...p.colors, { name: "New", hex: "#ffffff" }],
+          }))
+        }
+        className="mt-3 bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
+      >
+        ＋ Add Color
+      </button>
+    </section>
+
+    {/* Behavior Settings */}
+    <BehaviorSettings settings={settings} setSettings={setSettings} />
+  </div>
+)}
 
         {/* Tab content */}
         {!showSettings && activeTab !== "Dashboard" && (
