@@ -283,25 +283,26 @@ async function fetchPriceFor(tabName, rowIndex) {
   }
 }
 
-// Improved global refresh system with staggered tabs + smarter updates
+// Improved global refresh system with staggered tabs + correct fluctuation
 useEffect(() => {
   if (!tabs.length) return;
 
-  // clear any previous timers
+  // clear previous timers
   if (refreshTimerRef.current) {
-    for (const t of refreshTimerRef.current) clearInterval(t);
+    refreshTimerRef.current.forEach((t) => clearInterval(t));
   }
 
-  const hourMs = 60 * 60 * 1000; // 1 hour
-  const offsetMs = 8 * 60 * 1000; // 8 min between tab starts
-  const spacingMs = 2900; // delay per item to avoid 429s
-
+  const hourMs = 60 * 60 * 1000; // 1h per full cycle
+  const offsetMs = 8 * 60 * 1000; // 8 min between tabs
+  const spacingMs = 3000; // 3s between items to avoid 429s
   const timers = [];
 
   // refresh a single tab
   const refreshTab = async (tab) => {
     if (tab === "Dashboard" || showSettings) return;
     const rows = data[tab] || [];
+    if (!rows.length) return;
+
     const updatedRows = [...rows];
 
     for (let i = 0; i < rows.length; i++) {
@@ -316,60 +317,60 @@ useEffect(() => {
         if (json.ok && json.lowest != null) {
           const newPrice = Number(json.lowest);
           const oldPrice = Number(row.price || 0);
-const same = newPrice === oldPrice;
+          const prevBase = row.prevPrice || oldPrice || newPrice;
+          const oldTotal = prevBase * (Number(row.qty) || 0);
+          const newTotal = newPrice * (Number(row.qty) || 0);
 
-if (!same) {
-  let base = oldPrice > 0 ? oldPrice : row.prevPrice || 0;
-  let fluctPct = 0;
+          let fluctPct = 0;
+          if (oldTotal > 0) {
+            fluctPct = ((newTotal - oldTotal) / oldTotal) * 100;
+            // clamp abnormal spikes
+            if (fluctPct > 300) fluctPct = 300;
+            if (fluctPct < -300) fluctPct = -300;
+          }
 
-  if (base > 0) {
-    fluctPct = ((newPrice - base) / base) * 100;
-  }
-
-  updatedRows[i] = {
-    ...row,
-    prevPrice: base > 0 ? base : newPrice,
-    price: newPrice,
-    fluctPct,
-  };
-}
-
+          updatedRows[i] = {
+            ...row,
+            prevPrice: prevBase > 0 ? prevBase : newPrice,
+            price: newPrice,
+            fluctPct,
+          };
         }
       } catch (err) {
         console.warn("Failed to fetch price for", name, err);
       }
 
-      // wait between requests to avoid 429s
+      // wait between requests
       // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, spacingMs));
     }
 
-    // ✅ one atomic update per tab after all rows
+    // one atomic update per tab
     setData((prev) => ({ ...prev, [tab]: updatedRows }));
     setLastUpdatedAt(formatLisbonHM());
   };
 
-  // set one interval per tab, staggered start times
+  // schedule per-tab refresh with staggered offsets
   tabs.forEach((tab, idx) => {
     if (tab === "Dashboard") return;
     const startDelay = idx * offsetMs;
-    const timer = setTimeout(() => {
-      refreshTab(tab); // first run immediately
+
+    const startTimer = setTimeout(() => {
+      refreshTab(tab); // immediate first run
       const interval = setInterval(() => refreshTab(tab), hourMs);
       timers.push(interval);
     }, startDelay);
-    timers.push(timer);
+
+    timers.push(startTimer);
   });
 
   refreshTimerRef.current = timers;
 
   return () => {
-    if (refreshTimerRef.current) {
-      for (const t of refreshTimerRef.current) clearInterval(t);
-    }
+    timers.forEach((t) => clearInterval(t));
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [tabs, data, showSettings]);
+}, [tabs, showSettings]);
 
   // Temporary manual refresh button (debug/testing)
 const forceFullRefresh = async () => {
