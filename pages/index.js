@@ -161,15 +161,20 @@ export default function Home() {
     setSnapshots(newSnaps);
   }, [grandTotal, totals, tabs, snapshots, settings.snapshotTimeHHMM]);
 
-/* -------------------------- Auto refresh system (persistent sequential) -------------------------- */
+/* -------------------------- Auto refresh system (singleton persistent loop) -------------------------- */
 useEffect(() => {
   if (!tabs.length) return;
+  if (refreshTimerRef.current?.running) {
+    console.log("⚙️ Refresh loop already running, skipping new instance");
+    return;
+  }
+
+  refreshTimerRef.current = { running: true };
   let stop = false;
 
-  const spacingMs = 3000; // 3s between each item
+  const spacingMs = 3000; // 3s between item requests
   const intervalMin = settings.refreshMinutes || 30;
   const intervalMs = intervalMin * 60 * 1000;
-
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const runLoop = async () => {
@@ -177,12 +182,11 @@ useEffect(() => {
       const lastRun = Number(localStorage.getItem("cs2-lastFullRefreshAt") || 0);
       const sinceLast = Date.now() - lastRun;
 
-      // ⏸ skip if not enough time has passed
       if (sinceLast < intervalMs) {
         const wait = intervalMs - sinceLast;
         const waitMin = (wait / 60000).toFixed(1);
         console.log(`⏸ Skipping refresh — ${waitMin} min until next cycle`);
-        await sleep(60 * 1000); // check again in 1 min
+        await sleep(60000); // check every minute
         continue;
       }
 
@@ -229,7 +233,6 @@ useEffect(() => {
             console.warn("❌ Failed to fetch", name, err);
           }
 
-          // wait between item requests
           // eslint-disable-next-line no-await-in-loop
           await sleep(spacingMs);
         }
@@ -250,9 +253,11 @@ useEffect(() => {
 
   return () => {
     stop = true;
+    refreshTimerRef.current.running = false;
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [tabs, data, showSettings]);
+}, [tabs, showSettings, settings.refreshMinutes]);
+
 
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
