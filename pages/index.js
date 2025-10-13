@@ -161,72 +161,76 @@ export default function Home() {
     setSnapshots(newSnaps);
   }, [grandTotal, totals, tabs, snapshots, settings.snapshotTimeHHMM]);
 
-  /* -------------------------- Auto refresh system -------------------------- */
-  useEffect(() => {
-    if (!tabs.length) return;
-    refreshTimerRef.current.forEach((t) => clearInterval(t));
-    refreshTimerRef.current = [];
+/* -------------------------- Global sequential refresher -------------------------- */
+useEffect(() => {
+  if (!tabs.length) return;
+  let isCancelled = false;
 
-    const hourMs = 60 * 60 * 1000;
-    const offsetMs = 8 * 60 * 1000;
-    const spacingMs = 3000;
+  const spacingMs = 3000; // 3s between requests
+  const loopDelay = 60 * 1000; // 1 minute before restarting full cycle
 
-    const refreshTab = async (tab) => {
-      if (tab === "Dashboard" || showSettings) return;
+  const refreshAllSequentially = async () => {
+    for (const tab of tabs) {
+      if (tab === "Dashboard" || showSettings) continue;
       const rows = data[tab] || [];
-      if (!rows.length) return;
+      if (!rows.length) continue;
 
-      const updated = [...rows];
+      const updatedRows = [...rows];
+
       for (let i = 0; i < rows.length; i++) {
-        const r = rows[i];
-        const name = r?.name?.trim();
-        if (!name || r.locked) continue;
+        if (isCancelled) return;
+        const row = rows[i];
+        const name = row?.name?.trim();
+        if (!name || row.locked) continue;
 
         try {
           const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
           const json = await res.json();
+
           if (json.ok && json.lowest != null) {
             const newPrice = Number(json.lowest);
-            const oldPrice = Number(r.price || 0);
-            const prevBase = r.prevPrice || oldPrice || newPrice;
-            const oldTotal = prevBase * (r.qty || 0);
-            const newTotal = newPrice * (r.qty || 0);
+            const oldPrice = Number(row.price || 0);
+            const base = row.prevPrice || oldPrice || newPrice;
             let fluctPct = 0;
-            if (oldTotal > 0) {
-              fluctPct = ((newTotal - oldTotal) / oldTotal) * 100;
+
+            if (base > 0) {
+              fluctPct = ((newPrice - base) / base) * 100;
               if (fluctPct > 300) fluctPct = 300;
               if (fluctPct < -300) fluctPct = -300;
             }
-            updated[i] = {
-              ...r,
-              prevPrice: prevBase > 0 ? prevBase : newPrice,
+
+            updatedRows[i] = {
+              ...row,
+              prevPrice: base > 0 ? base : newPrice,
               price: newPrice,
               fluctPct,
             };
           }
         } catch (err) {
-          console.warn("fetch error", name, err);
+          console.warn("Failed to fetch price for", name, err);
         }
+
+        // wait between requests to avoid 429s
+        // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => setTimeout(r, spacingMs));
       }
-      setData((prev) => ({ ...prev, [tab]: updated }));
+
+      setData((prev) => ({ ...prev, [tab]: updatedRows }));
       setLastUpdatedAt(formatLisbonHM());
-    };
+    }
 
-    tabs.forEach((tab, idx) => {
-      if (tab === "Dashboard") return;
-      const delay = idx * offsetMs;
-      const runNow = () => refreshTab(tab);
-      const start = setTimeout(() => {
-        runNow();
-        const interval = setInterval(runNow, hourMs);
-        refreshTimerRef.current.push(interval);
-      }, delay);
-      refreshTimerRef.current.push(start);
-    });
+    if (!isCancelled) {
+      console.log("✅ Full refresh cycle completed — restarting soon...");
+      setTimeout(refreshAllSequentially, loopDelay);
+    }
+  };
 
-    return () => refreshTimerRef.current.forEach((t) => clearInterval(t));
-  }, [tabs, data, showSettings]);
+  refreshAllSequentially();
+
+  return () => {
+    isCancelled = true;
+  };
+}, [tabs, data, showSettings]);
 
   /* ------------------------------- Color menu ------------------------------- */
   const openColorMenuAtButton = (tab, i, e) => {
@@ -234,18 +238,26 @@ export default function Home() {
     setColorMenu({ open: true, tab, index: i, x: rect.left, y: rect.bottom + 6 });
   };
   const closeColorMenu = () => setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
-  useEffect(() => {
-    if (!colorMenu.open) return;
-    const close = () => closeColorMenu();
-    window.addEventListener("click", close);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      window.removeEventListener("click", close);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
-    };
-  }, [colorMenu.open]);
+useEffect(() => {
+  if (!colorMenu.open) return;
+
+  const handleClick = (e) => {
+    const menuEl = document.getElementById("color-menu-portal");
+    if (menuEl && menuEl.contains(e.target)) return; // ignore clicks inside menu
+    closeColorMenu();
+  };
+
+  window.addEventListener("click", handleClick);
+  window.addEventListener("scroll", closeColorMenu, true);
+  window.addEventListener("resize", closeColorMenu);
+
+  return () => {
+    window.removeEventListener("click", handleClick);
+    window.removeEventListener("scroll", closeColorMenu, true);
+    window.removeEventListener("resize", closeColorMenu);
+  };
+}, [colorMenu.open]);
+
   const applyColorToRow = (tab, i, hex) => {
     const rows = [...(data[tab] || [])];
     if (!rows[i]) return;
