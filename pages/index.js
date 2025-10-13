@@ -242,12 +242,19 @@ useEffect(() => {
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const rect = e.currentTarget.getBoundingClientRect();
+  const menuHeight = 200; // rough estimate for dropdown height
+  const viewportHeight = window.innerHeight;
+
+  // if there’s not enough space below → open above
+  const openAbove = rect.bottom + menuHeight > viewportHeight;
+  const y = openAbove ? rect.top - menuHeight - 6 : rect.bottom + 6;
+
   setColorMenu({
     open: true,
     tab,
     index: i,
     x: rect.left,
-    y: rect.bottom + 6,
+    y,
   });
 };
 
