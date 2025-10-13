@@ -300,27 +300,45 @@ useEffect(() => {
     if (tab === "Dashboard" || showSettings) return;
     const rows = data[tab] || [];
     let changed = false;
+const rows = data[tab] || [];
+const updatedRows = [...rows];
 
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const name = r?.name?.trim();
-      if (!name || r.locked) continue;
+for (let i = 0; i < rows.length; i++) {
+  const row = rows[i];
+  const name = row?.name?.trim();
+  if (!name || row.locked) continue;
 
-      try {
-        const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
-        const json = await res.json();
+  try {
+    const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
+    const json = await res.json();
 
-        if (json.ok && json.lowest != null) {
-          const newPrice = Number(json.lowest);
-          const oldPrice = Number(r.price || 0);
-          if (newPrice !== oldPrice) {
-            const updated = [...rows];
-            const fluctPct =
-              oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
-            updated[i] = { ...r, prevPrice: oldPrice, price: newPrice, fluctPct };
-            setData((prev) => ({ ...prev, [tab]: updated }));
-            changed = true;
-          }
+    if (json.ok && json.lowest != null) {
+      const newPrice = Number(json.lowest);
+      const oldPrice = Number(row.price || 0);
+      const same = newPrice === oldPrice;
+      if (!same) {
+        const fluctPct =
+          oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
+        updatedRows[i] = {
+          ...row,
+          prevPrice: oldPrice > 0 ? oldPrice : newPrice,
+          price: newPrice,
+          fluctPct,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to fetch price for", name, err);
+  }
+
+  // wait between requests to avoid 429s
+  // eslint-disable-next-line no-await-in-loop
+  await new Promise((r) => setTimeout(r, spacingMs));
+}
+
+// ✅ one atomic update per tab
+setData((prev) => ({ ...prev, [tab]: updatedRows }));
+
         }
       } catch (err) {
         console.warn("Failed to fetch price for", name, err);
