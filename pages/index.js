@@ -59,7 +59,6 @@ const DEFAULT_SETTINGS = {
 /* ================================== App ==================================== */
 export default function Home() {
   const [tabs, setTabs] = useState([]);
-  const [activeTab, setActiveTab] = useState("Dashboard");
   const [showSettings, setShowSettings] = useState(false);
   const [data, setData] = useState({});
   const [totals, setTotals] = useState({});
