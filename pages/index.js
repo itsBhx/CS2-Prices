@@ -286,92 +286,85 @@ async function fetchPriceFor(tabName, rowIndex) {
 // Improved global refresh system with staggered tabs + smarter updates
 useEffect(() => {
   if (!tabs.length) return;
+
+  // clear any previous timers
   if (refreshTimerRef.current) {
     for (const t of refreshTimerRef.current) clearInterval(t);
   }
 
-  const hourMs = 60 * 60 * 1000;
-  const offsetMs = 8 * 60 * 1000; // 8 min per tab
-  const spacingMs = 2750; // delay per item
+  const hourMs = 60 * 60 * 1000; // 1 hour
+  const offsetMs = 8 * 60 * 1000; // 8 min between tab starts
+  const spacingMs = 2750; // delay per item to avoid 429s
 
   const timers = [];
 
+  // refresh a single tab
   const refreshTab = async (tab) => {
     if (tab === "Dashboard" || showSettings) return;
     const rows = data[tab] || [];
-    let changed = false;
-const rows = data[tab] || [];
-const updatedRows = [...rows];
+    const updatedRows = [...rows];
 
-for (let i = 0; i < rows.length; i++) {
-  const row = rows[i];
-  const name = row?.name?.trim();
-  if (!name || row.locked) continue;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = row?.name?.trim();
+      if (!name || row.locked) continue;
 
-  try {
-    const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
-    const json = await res.json();
+      try {
+        const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
+        const json = await res.json();
 
-    if (json.ok && json.lowest != null) {
-      const newPrice = Number(json.lowest);
-      const oldPrice = Number(row.price || 0);
-      const same = newPrice === oldPrice;
-      if (!same) {
-        const fluctPct =
-          oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
-        updatedRows[i] = {
-          ...row,
-          prevPrice: oldPrice > 0 ? oldPrice : newPrice,
-          price: newPrice,
-          fluctPct,
-        };
-      }
-    }
-  } catch (err) {
-    console.warn("Failed to fetch price for", name, err);
-  }
+        if (json.ok && json.lowest != null) {
+          const newPrice = Number(json.lowest);
+          const oldPrice = Number(row.price || 0);
+          const same = newPrice === oldPrice;
 
-  // wait between requests to avoid 429s
-  // eslint-disable-next-line no-await-in-loop
-  await new Promise((r) => setTimeout(r, spacingMs));
-}
+          if (!same) {
+            const fluctPct =
+              oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
 
-// ✅ one atomic update per tab
-setData((prev) => ({ ...prev, [tab]: updatedRows }));
-
+            updatedRows[i] = {
+              ...row,
+              prevPrice: oldPrice > 0 ? oldPrice : newPrice,
+              price: newPrice,
+              fluctPct,
+            };
+          }
         }
       } catch (err) {
         console.warn("Failed to fetch price for", name, err);
       }
 
-      // spacing between item requests
+      // wait between requests to avoid 429s
       // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, spacingMs));
     }
 
-    if (changed) setLastUpdatedAt(formatLisbonHM());
+    // ✅ one atomic update per tab after all rows
+    setData((prev) => ({ ...prev, [tab]: updatedRows }));
+    setLastUpdatedAt(formatLisbonHM());
   };
 
-  // schedule each tab with a unique offset (8 min apart)
+  // set one interval per tab, staggered start times
   tabs.forEach((tab, idx) => {
-    const delay = idx * offsetMs;
-    const runNow = () => refreshTab(tab);
-    runNow(); // immediate run once
-
-    const id = setInterval(runNow, hourMs);
-    timers.push(id);
-
-    // add offset start
-    setTimeout(runNow, delay);
+    if (tab === "Dashboard") return;
+    const startDelay = idx * offsetMs;
+    const timer = setTimeout(() => {
+      refreshTab(tab); // first run immediately
+      const interval = setInterval(() => refreshTab(tab), hourMs);
+      timers.push(interval);
+    }, startDelay);
+    timers.push(timer);
   });
 
   refreshTimerRef.current = timers;
 
   return () => {
-    for (const t of timers) clearInterval(t);
+    if (refreshTimerRef.current) {
+      for (const t of refreshTimerRef.current) clearInterval(t);
+    }
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [tabs, showSettings]);
+}, [tabs, data, showSettings]);
 
   /* ------------------------------ Settings helpers ---------------------------- */
   const addColorPreset = () => {
