@@ -674,12 +674,16 @@ export default function Home() {
                         <td className="p-2">
   <div className="flex items-center gap-2">
     {/* Color square */}
-    <button
-      onClick={(e) => openColorMenuAtButton(activeTab, i, e)}
-      className="h-4 w-4 rounded border border-neutral-700 hover:border-blue-400 transition"
-      style={{ backgroundColor: row.colorHex || "transparent" }}
-      title="Set rarity color"
-    />
+<button
+  type="button"
+  onClick={(e) => {
+    e.stopPropagation(); // prevents table row click interference
+    openColorMenuAtButton(activeTab, i, e);
+  }}
+  className="h-4 w-4 rounded border border-neutral-700 hover:border-blue-400 transition"
+  style={{ backgroundColor: row.colorHex || "transparent" }}
+  title="Set rarity color"
+/>
 
     {/* Item name input */}
     <input
@@ -784,43 +788,38 @@ export default function Home() {
       </main>
 
       {/* Floating Color Menu (Portal-like: fixed to viewport) */}
-      {colorMenu.open && (
-        <div
-          id="color-menu-portal"
-          className="fixed z-50"
-          style={{ top: colorMenu.y, left: colorMenu.x }}
+{colorMenu.open && (
+  <div
+    id="color-menu-portal"
+    className="fixed z-50"
+    style={{ top: colorMenu.y, left: colorMenu.x }}
+  >
+    <div className="origin-top-left animate-[fadeSlide_.15s_ease-out] bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
+      <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+      <button
+        onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, "")}
+        className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
+      >
+        <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
+        None
+      </button>
+      {settings.colors.map((c) => (
+        <button
+          key={c.name + c.hex}
+          onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, c.hex)}
+          className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
         >
-          <div
-            className="origin-top-left animate-[fadeSlide_.15s_ease-out] bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]"
-            style={{
-              // simple keyframes without CSS file
-              animationName: undefined,
-            }}
-          >
-            <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
-            <button
-              onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, "")}
-              className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-            >
-              <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
-              None
-            </button>
-            {settings.colors.map((c) => (
-              <button
-                key={c.name + c.hex}
-                onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, c.hex)}
-                className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-              >
-                <span
-                  className="h-3 w-3 rounded border border-neutral-600"
-                  style={{ backgroundColor: c.hex }}
-                />
-                {c.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+          <span
+            className="h-3 w-3 rounded border border-neutral-600"
+            style={{ backgroundColor: c.hex }}
+          />
+          {c.name}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
 
       {loading && (
         <div className="fixed bottom-4 right-4 bg-neutral-900/80 px-4 py-2 rounded-lg shadow border border-neutral-700 text-sm text-neutral-300">
