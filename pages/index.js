@@ -672,41 +672,53 @@ export default function Home() {
                         style={tint ? { backgroundColor: tint } : {}}
                       >
                         <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              value={row.name || ""}
-                              disabled={!!row.locked}
-                              onChange={(e) => {
-                                const rows = [...(data[activeTab] || [])];
-                                rows[i].name = e.target.value;
-                                setData({ ...data, [activeTab]: rows });
-                              }}
-                              onBlur={() => handleNameBlur(i)}
-                              placeholder="Item name (e.g., Snakebite Case)"
-                              className={`w-full bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none ${
-                                row.locked ? "opacity-60 cursor-not-allowed" : ""
-                              }`}
-                            />
-                            {steamHref ? (
-                              <a
-                                href={steamHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-neutral-400 hover:text-blue-300 text-sm"
-                                title="Open on Steam Market ↗"
-                              >
-                                ↗
-                              </a>
-                            ) : (
-                              <span
-                                className="text-neutral-700 cursor-not-allowed select-none text-sm"
-                                title="Enter item name to open Steam link"
-                              >
-                                ↗
-                              </span>
-                            )}
-                          </div>
-                        </td>
+  <div className="flex items-center gap-2">
+    {/* Color square */}
+    <button
+      onClick={(e) => openColorMenuAtButton(activeTab, i, e)}
+      className="h-4 w-4 rounded border border-neutral-700 hover:border-blue-400 transition"
+      style={{ backgroundColor: row.colorHex || "transparent" }}
+      title="Set rarity color"
+    />
+
+    {/* Item name input */}
+    <input
+      value={row.name || ""}
+      disabled={!!row.locked}
+      onChange={(e) => {
+        const rows = [...(data[activeTab] || [])];
+        rows[i].name = e.target.value;
+        setData({ ...data, [activeTab]: rows });
+      }}
+      onBlur={() => handleNameBlur(i)}
+      placeholder="Item name (e.g., Snakebite Case)"
+      className={`w-full bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none ${
+        row.locked ? "opacity-60 cursor-not-allowed" : ""
+      }`}
+    />
+
+    {/* Steam market link */}
+    {steamHref ? (
+      <a
+        href={steamHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-neutral-400 hover:text-blue-300 text-sm"
+        title="Open on Steam Market ↗"
+      >
+        ↗
+      </a>
+    ) : (
+      <span
+        className="text-neutral-700 cursor-not-allowed select-none text-sm"
+        title="Enter item name to open Steam link"
+      >
+        ↗
+      </span>
+    )}
+  </div>
+</td>
+
 
                         <td className="p-2 text-center">
                           <input
