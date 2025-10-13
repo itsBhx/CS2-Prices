@@ -364,35 +364,36 @@ const applyColorToRow = (tab, i, hex) => {
         </div>
       </header>
 
-      {/* Tabs */}
-      {!showSettings && (
-        <nav className="flex flex-wrap gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
-          {tabs.map((tab) => (
-            <div
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
-                activeTab === tab
-                  ? "bg-blue-800 shadow-md shadow-black/30"
-                  : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              <span>{tab}</span>
-              {tab !== "Dashboard" && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeTab(tab);
-                  }}
-                  className="text-xs text-neutral-300 hover:text-red-400"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-        </nav>
-      )}
+{/* Tabs (no Dashboard here) */}
+{!showSettings && (
+  <nav className="flex flex-wrap gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
+    {tabs
+      .filter((t) => t !== "Dashboard")
+      .map((tab) => (
+        <div
+          key={tab}
+          onClick={() => setActiveTab(tab)}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
+            activeTab === tab
+              ? "bg-blue-800 shadow-md shadow-black/30"
+              : "bg-neutral-800 hover:bg-neutral-700"
+          }`}
+        >
+          <span>{tab}</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              removeTab(tab);
+            }}
+            className="text-xs text-neutral-300 hover:text-red-400"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+  </nav>
+)}
+
 
       <main className="p-6">
         {/* Dashboard */}
