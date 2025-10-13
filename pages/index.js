@@ -335,48 +335,51 @@ const applyColorToRow = (tab, i, hex) => {
 
   return (
     <div className="min-h-screen text-gray-100 font-sans bg-gradient-to-br from-[#050505] to-[#121212]">
-      <header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
+<header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
+  <div className="flex items-center justify-between">
+    {/* Left title */}
+    <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
+
+    {/* Center Dashboard button */}
     <div className="flex-1 flex justify-center">
-  <button
-    onClick={() => {
-      setActiveTab("Dashboard");
-      setShowSettings(false);
-    }}
-    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition
-      ${activeTab === "Dashboard" 
-        ? "bg-blue-800 text-white shadow-md" 
-        : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300"}`}
-  >
-    Dashboard
-  </button>
-</div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={addTab}
-              className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
-            >
-              ＋ Add Tab
-            </button>
-            <button
-              onClick={() => {
-                setShowSettings((s) => !s);
-                setActiveTab("Dashboard");
-              }}
-              className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition"
-              title="Settings"
-            >
-              ⚙️
-            </button>
-          </div>
-        </div>
-        <div className="mt-2 text-xs text-neutral-400">
-          {lastUpdatedAt
-            ? `Last updated at ${lastUpdatedAt} WEST`
-            : "Waiting for first  refresh…"}
-        </div>
-      </header>
+      <button
+        onClick={() => {
+          setActiveTab("Dashboard");
+          setShowSettings(false);
+        }}
+        className={`group relative px-6 py-2 text-sm font-semibold rounded-full transition-all duration-300 
+          ${activeTab === "Dashboard"
+            ? "text-white bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.5)] scale-[1.05]"
+            : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(59,130,246,0.3)]"}`}
+      >
+        <span className="relative z-10">Dashboard</span>
+        {activeTab === "Dashboard" && (
+          <span className="absolute inset-0 rounded-full bg-blue-600/20 blur-xl animate-pulse" />
+        )}
+      </button>
+    </div>
+
+    {/* Right side buttons */}
+    <div className="flex items-center gap-3">
+      <button
+        onClick={addTab}
+        className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
+      >
+        ＋ Add Tab
+      </button>
+      <button
+        onClick={() => {
+          setShowSettings((s) => !s);
+          setActiveTab("Dashboard");
+        }}
+        className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition"
+        title="Settings"
+      >
+        ⚙️
+      </button>
+    </div>
+  </div>
+</header>
 
 {/* Tabs (no Dashboard here) */}
 {!showSettings && (
