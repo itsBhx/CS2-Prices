@@ -87,44 +87,65 @@ export default function Home() {
       localStorage.setItem("cs2-lastUpdatedAt", lastUpdatedAt);
   }, [lastUpdatedAt]);
 
-  /* ------------------------------- Tabs & Rows ------------------------------- */
-  const addTab = () => {
-    const name = prompt("New tab name:");
-    if (!name || tabs.includes(name)) return;
-    setTabs([...tabs, name]);
-    setData({ ...data, [name]: [] });
-    setActiveTab(name);
-    setShowSettings(false);
-  };
-  const removeTab = (tab) => {
-    if (tab === "Dashboard") return;
-    if (!confirm(`Delete tab "${tab}"?`)) return;
-    const nextTabs = tabs.filter((t) => t !== tab);
-    const nextData = { ...data };
-    delete nextData[tab];
-    setTabs(nextTabs);
-    setData(nextData);
-    setActiveTab("Dashboard");
-  };
-  const addRow = () => {
-    if (activeTab === "Dashboard" || showSettings) return;
-    const rows = data[activeTab] || [];
-    setData({
-      ...data,
-      [activeTab]: [...rows, { name: "", qty: 1, price: 0, colorHex: "", locked: false }],
-    });
-  };
-  const deleteRow = (i) => {
-    if (!confirm("Delete this row?")) return;
-    const rows = [...(data[activeTab] || [])];
-    rows.splice(i, 1);
-    setData({ ...data, [activeTab]: rows });
-  };
-  const toggleLockRow = (i) => {
-    const rows = [...(data[activeTab] || [])];
-    rows[i].locked = !rows[i].locked;
-    setData({ ...data, [activeTab]: rows });
-  };
+/* ------------------------------- Categories & Tabs ------------------------------- */
+const [categories, setCategories] = useState({});
+const [activeCategory, setActiveCategory] = useState(null);
+const [activeTab, setActiveTab] = useState("Dashboard");
+
+// Load from localStorage
+useEffect(() => {
+  if (typeof window === "undefined") return;
+  const saved = JSON.parse(localStorage.getItem("cs2-categories") || "{}");
+  setCategories(saved);
+}, []);
+
+// Save to localStorage whenever categories change
+useEffect(() => {
+  localStorage.setItem("cs2-categories", JSON.stringify(categories));
+}, [categories]);
+
+const addCategory = () => {
+  const name = prompt("New category name:");
+  if (!name || categories[name]) return;
+  setCategories({ ...categories, [name]: {} });
+};
+
+const removeCategory = (name) => {
+  const hasTabs = Object.keys(categories[name] || {}).length > 0;
+  if (hasTabs) {
+    alert("❌ Cannot delete a category that still has tabs inside.");
+    return;
+  }
+  if (!confirm(`Delete category "${name}"?`)) return;
+  const next = { ...categories };
+  delete next[name];
+  setCategories(next);
+  if (activeCategory === name) setActiveCategory(null);
+};
+
+const addTabToCategory = (cat) => {
+  const tabName = prompt(`New tab inside "${cat}":`);
+  if (!tabName || categories[cat][tabName]) return;
+  const next = { ...categories };
+  next[cat][tabName] = [];
+  setCategories(next);
+  setActiveCategory(cat);
+  setActiveTab(tabName);
+};
+
+const removeTabFromCategory = (cat, tab) => {
+  if (!confirm(`Delete tab "${tab}" from "${cat}"?`)) return;
+  const next = { ...categories };
+  delete next[cat][tab];
+  setCategories(next);
+  if (activeTab === tab) setActiveTab("Dashboard");
+};
+
+const openTab = (cat, tab) => {
+  setActiveCategory(cat);
+  setActiveTab(tab);
+  setShowSettings(false);
+};
 
   /* ----------------------------- Totals per tab ----------------------------- */
   useEffect(() => {
@@ -455,61 +476,104 @@ const applyColorToRow = (tab, i, hex) => {
   </div>
 </header>
 
-{/* Tabs (no Dashboard here) */}
+{/* Header Navigation (Categories + Tabs dropdowns) */}
 {!showSettings && (
-  <nav className="flex flex-wrap gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
-    {tabs
-      .filter((t) => t !== "Dashboard")
-      .map((tab, idx) => (
-        <div
-          key={tab}
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", idx);
-            e.currentTarget.style.opacity = 0.5;
-          }}
-          onDragEnd={(e) => (e.currentTarget.style.opacity = 1)}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const from = Number(e.dataTransfer.getData("text/plain"));
-            const to = idx;
-            if (from === to) return;
-            const reordered = [...tabs];
-            const [moved] = reordered.splice(from, 1);
-            reordered.splice(to, 0, moved);
-            setTabs(reordered);
-            localStorage.setItem("cs2-tabs", JSON.stringify(reordered));
-          }}
-          onClick={() => setActiveTab(tab)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition select-none ${
-            activeTab === tab
-              ? "bg-blue-800 shadow-md shadow-black/30"
-              : "bg-neutral-800 hover:bg-neutral-700"
-          }`}
-          style={{ userSelect: "none" }}
-        >
-          <span className="text-sm">{tab}</span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              removeTab(tab);
-            }}
-            className="text-xs text-neutral-300 hover:text-red-400"
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-
+  <div className="flex flex-wrap items-center justify-center gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
+    {/* Dashboard button */}
     <button
-      onClick={addTab}
-      className="ml-2 bg-green-800 hover:bg-green-700 px-3 py-1.5 rounded-lg text-sm font-semibold"
+      onClick={() => {
+        setActiveCategory(null);
+        setActiveTab("Dashboard");
+        setShowSettings(false);
+      }}
+      className={`px-4 py-1.5 rounded-lg font-semibold transition ${
+        activeTab === "Dashboard"
+          ? "bg-blue-700 text-white"
+          : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+      }`}
     >
-      ＋ Add Tab
+      💎 Dashboard
     </button>
-  </nav>
+
+    {/* Categories */}
+    {Object.keys(categories).map((cat) => (
+      <div key={cat} className="relative">
+        <button
+          onClick={() =>
+            setActiveCategory((prev) => (prev === cat ? null : cat))
+          }
+          className={`px-4 py-1.5 rounded-lg font-semibold transition ${
+            activeCategory === cat
+              ? "bg-blue-700 text-white"
+              : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+          }`}
+        >
+          {cat} ▾
+        </button>
+
+        {/* Dropdown */}
+        {activeCategory === cat && (
+          <div className="absolute left-0 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 min-w-[200px]">
+            {Object.keys(categories[cat] || {}).map((tab) => (
+              <div
+                key={tab}
+                className="flex justify-between items-center px-3 py-2 hover:bg-neutral-800 cursor-pointer"
+                onClick={() => {
+                  openTab(cat, tab);
+                  setActiveCategory(null); // close dropdown
+                }}
+              >
+                <span>{tab}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTabFromCategory(cat, tab);
+                  }}
+                  className="text-red-400 hover:text-red-500"
+                >
+                  ✖
+                </button>
+              </div>
+            ))}
+            <div
+              className="px-3 py-2 text-blue-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800"
+              onClick={() => addTabToCategory(cat)}
+            >
+              ＋ Add Tab
+            </div>
+            <div
+              className="px-3 py-2 text-red-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800"
+              onClick={() => removeCategory(cat)}
+            >
+              🗑 Delete Category
+            </div>
+          </div>
+        )}
+      </div>
+    ))}
+
+    {/* Add Category button */}
+    <button
+      onClick={addCategory}
+      className="bg-blue-700 hover:bg-blue-600 px-3 py-1.5 rounded-lg text-sm font-semibold transition"
+    >
+      ＋ Add Category
+    </button>
+
+    {/* Settings */}
+    <button
+      onClick={() => setShowSettings((v) => !v)}
+      className={`ml-2 text-xl ${
+        showSettings
+          ? "text-blue-400"
+          : "text-gray-400 hover:text-gray-200"
+      }`}
+    >
+      ⚙️
+    </button>
+  </div>
 )}
+
 
       <main className="p-6">
         {/* Dashboard */}
