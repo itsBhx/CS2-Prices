@@ -1,6 +1,7 @@
 console.log("✅ Tailwind connected!");
 
 import '../styles/globals.css';
+
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
