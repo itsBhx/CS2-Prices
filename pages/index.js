@@ -161,7 +161,7 @@ export default function Home() {
     setSnapshots(newSnaps);
   }, [grandTotal, totals, tabs, snapshots, settings.snapshotTimeHHMM]);
 
-/* -------------------------- Auto refresh system (singleton persistent loop) -------------------------- */
+/* -------------------------- Auto refresh system (self-healing loop with live state) -------------------------- */
 useEffect(() => {
   if (!tabs.length) return;
   if (refreshTimerRef.current?.running) {
@@ -173,7 +173,7 @@ useEffect(() => {
   let stop = false;
 
   const spacingMs = 3000; // 3s between item requests
-  const intervalMin = settings.refreshMinutes || 30;
+  const intervalMin = settings.refreshMinutes || 5;
   const intervalMs = intervalMin * 60 * 1000;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -186,15 +186,19 @@ useEffect(() => {
         const wait = intervalMs - sinceLast;
         const waitMin = (wait / 60000).toFixed(1);
         console.log(`⏸ Skipping refresh — ${waitMin} min until next cycle`);
-        await sleep(60000); // check every minute
+        await sleep(60000); // recheck every minute
         continue;
       }
 
       console.log(`🔄 Starting full refresh cycle (${intervalMin} min interval)`);
 
-      for (const tab of tabs) {
-        if (tab === "Dashboard" || showSettings) continue;
-        const rows = data[tab] || [];
+      // 🔥 always get fresh data and tabs each loop iteration
+      const liveTabs = JSON.parse(localStorage.getItem("cs2-tabs") || "[]");
+      const liveData = JSON.parse(localStorage.getItem("cs2-data") || "{}");
+
+      for (const tab of liveTabs) {
+        if (tab === "Dashboard") continue;
+        const rows = liveData[tab] || [];
         if (!rows.length) continue;
 
         console.log(`▶ Fetching tab: ${tab}`);
@@ -237,7 +241,13 @@ useEffect(() => {
           await sleep(spacingMs);
         }
 
-        setData((prev) => ({ ...prev, [tab]: updated }));
+        // update both React and localStorage data in one go
+        setData((prev) => {
+          const next = { ...prev, [tab]: updated };
+          localStorage.setItem("cs2-data", JSON.stringify(next));
+          return next;
+        });
+
         console.log(`✅ Finished tab: ${tab}`);
       }
 
@@ -256,8 +266,7 @@ useEffect(() => {
     refreshTimerRef.current.running = false;
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [tabs, showSettings, settings.refreshMinutes]);
-
+}, [tabs.length, settings.refreshMinutes]);
 
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
