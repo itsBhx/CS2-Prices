@@ -336,33 +336,38 @@ const applyColorToRow = (tab, i, hex) => {
   return (
     <div className="min-h-screen text-gray-100 font-sans bg-gradient-to-br from-[#050505] to-[#121212]">
 <header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
-  {/* 3-column grid keeps the center perfectly centered */}
+  {/* Perfect 3-column alignment */}
   <div className="grid grid-cols-3 items-center">
-    {/* Left: Title */}
+    {/* LEFT: Title + timestamp */}
     <div className="justify-self-start">
       <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
+      <div className="mt-1 text-xs text-neutral-400">
+        {lastUpdatedAt
+          ? `Last updated at ${lastUpdatedAt} WEST`
+          : "Waiting for first auto refresh…"}
+      </div>
     </div>
 
-    {/* Center: MAIN Dashboard button */}
+    {/* CENTER: Main Dashboard button */}
     <div className="justify-self-center">
       <button
         onClick={() => {
           setActiveTab("Dashboard");
           setShowSettings(false);
         }}
-        className={`group relative px-6 py-2 text-sm font-semibold rounded-full transition-all duration-300 
+        className={`group relative px-7 py-2 text-sm font-semibold rounded-full transition-all duration-300
           ${activeTab === "Dashboard"
             ? "text-white bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.5)] scale-[1.05]"
             : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(59,130,246,0.3)]"}`}
       >
-        <span className="relative z-10">🏠 Dashboard</span>
+        <span className="relative z-10">Dashboard</span>
         {activeTab === "Dashboard" && (
           <span className="absolute inset-0 rounded-full bg-blue-600/20 blur-xl animate-pulse" />
         )}
       </button>
     </div>
 
-    {/* Right: Controls */}
+    {/* RIGHT: Add + Settings */}
     <div className="justify-self-end flex items-center gap-3">
       <button
         onClick={addTab}
@@ -382,13 +387,6 @@ const applyColorToRow = (tab, i, hex) => {
         ⚙️
       </button>
     </div>
-  </div>
-
-  {/* Last updated line (centered) */}
-  <div className="mt-2 text-xs text-neutral-400 text-center">
-    {lastUpdatedAt
-      ? `Last updated at ${lastUpdatedAt} WEST`
-      : "Waiting for first auto refresh…"}
   </div>
 </header>
 
