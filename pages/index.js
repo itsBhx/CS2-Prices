@@ -454,13 +454,13 @@ const applyColorToRow = (tab, i, hex) => {
 
     {/* RIGHT: Add + Settings */}
     <div className="justify-self-end flex items-center gap-3">
-      <button
-        onClick={addTab}
-        className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
-        title="Add Tab"
-      >
-        ＋ Add Tab
-      </button>
+  <button
+    onClick={addCategory}
+    className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
+    title="Add Category"
+  >
+    ＋ Add Category
+  </button>
       <button
         onClick={() => {
           setShowSettings((s) => !s);
