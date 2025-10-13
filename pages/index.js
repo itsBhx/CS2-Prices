@@ -455,59 +455,55 @@ const applyColorToRow = (tab, i, hex) => {
   </div>
 </header>
 
-{/* Tabs (no Dashboard here) */}
+{/* Navigation */}
 {!showSettings && (
-  <nav className="flex flex-wrap gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
-    {tabs
-      .filter((t) => t !== "Dashboard")
-      .map((tab, idx) => (
-        <div
-          key={tab}
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", idx);
-            e.currentTarget.style.opacity = 0.5;
-          }}
-          onDragEnd={(e) => (e.currentTarget.style.opacity = 1)}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const from = Number(e.dataTransfer.getData("text/plain"));
-            const to = idx;
-            if (from === to) return;
-            const reordered = [...tabs];
-            const [moved] = reordered.splice(from, 1);
-            reordered.splice(to, 0, moved);
-            setTabs(reordered);
-            localStorage.setItem("cs2-tabs", JSON.stringify(reordered));
-          }}
-          onClick={() => setActiveTab(tab)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition select-none ${
-            activeTab === tab
-              ? "bg-blue-800 shadow-md shadow-black/30"
-              : "bg-neutral-800 hover:bg-neutral-700"
-          }`}
-          style={{ userSelect: "none" }}
-        >
-          <span className="text-sm">{tab}</span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              removeTab(tab);
-            }}
-            className="text-xs text-neutral-300 hover:text-red-400"
-          >
-            ✕
-          </button>
-        </div>
-      ))}
+  <nav className="flex gap-3 items-center px-6 py-3 bg-neutral-900/50 border-b border-neutral-800 relative">
+    {tabs.map((tab) => (
+      <div key={tab.name} className="relative">
+        {/* Folder type (with dropdown) */}
+        {tab.type === "folder" ? (
+          <div className="group relative">
+            <button
+              onClick={() => setActiveTab(tab.name)}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+                activeTab === tab.name
+                  ? "bg-blue-800 text-white"
+                  : "bg-neutral-800 hover:bg-neutral-700 text-gray-300"
+              }`}
+            >
+              {tab.name} ⌄
+            </button>
 
-    <button
-      onClick={addTab}
-      className="ml-2 bg-green-800 hover:bg-green-700 px-3 py-1.5 rounded-lg text-sm font-semibold"
-    >
-      ＋ Add Tab
-    </button>
+            {/* Dropdown with children */}
+            <div className="hidden group-hover:flex flex-col absolute left-0 top-full mt-1 w-48 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg z-50">
+              {tab.children.map((child) => (
+                <button
+                  key={child}
+                  onClick={() => setActiveTab(child)}
+                  className={`text-left px-3 py-2 text-sm hover:bg-neutral-800 transition ${
+                    activeTab === child ? "bg-blue-800 text-white" : "text-gray-300"
+                  }`}
+                >
+                  {child}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Single tab (e.g. Cases) */
+          <button
+            onClick={() => setActiveTab(tab.name)}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+              activeTab === tab.name
+                ? "bg-blue-800 text-white"
+                : "bg-neutral-800 hover:bg-neutral-700 text-gray-300"
+            }`}
+          >
+            {tab.name}
+          </button>
+        )}
+      </div>
+    ))}
   </nav>
 )}
 
@@ -630,6 +626,18 @@ const applyColorToRow = (tab, i, hex) => {
 
     {/* Behavior Settings */}
     <BehaviorSettings settings={settings} setSettings={setSettings} />
+  </div>
+)}
+
+{/* Delete button only visible inside a tab */}
+{activeTab !== "Dashboard" && !showSettings && (
+  <div className="flex justify-end px-6 mt-2">
+    <button
+      onClick={() => removeTab(activeTab)}
+      className="text-red-400 hover:text-red-500 text-sm border border-red-700 px-3 py-1 rounded-lg bg-neutral-900/60 hover:bg-neutral-800 transition"
+    >
+      🗑 Delete This Tab
+    </button>
   </div>
 )}
 
