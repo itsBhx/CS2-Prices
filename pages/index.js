@@ -173,7 +173,7 @@ useEffect(() => {
   let stop = false;
 
   const spacingMs = 3000; // 3s between item requests
-  const intervalMin = settings.refreshMinutes || 5;
+  const intervalMin = settings.refreshMinutes || 30;
   const intervalMs = intervalMin * 60 * 1000;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
