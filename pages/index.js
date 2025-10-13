@@ -97,6 +97,15 @@ export default function Home() {
 
   const refreshTimerRef = useRef(null);
 
+  // Floating link edit menu state
+const [linkMenu, setLinkMenu] = useState({
+  open: false,
+  tab: null,
+  index: null,
+  x: 0,
+  y: 0,
+});
+
   /* ----------------------------- Load / persist ------------------------------ */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -284,45 +293,77 @@ export default function Home() {
     fetchPriceFor(activeTab, i);
   };
 
-  // Global auto refresh (all tabs)
-  useEffect(() => {
-    if (!tabs.length) return;
-    if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+// Improved global refresh system with staggered tabs + smarter updates
+useEffect(() => {
+  if (!tabs.length) return;
+  if (refreshTimerRef.current) {
+    for (const t of refreshTimerRef.current) clearInterval(t);
+  }
 
-    const doRefreshAll = async () => {
-      if (showSettings) return; // pause while settings open
-      setLoading(true);
+  const hourMs = 60 * 60 * 1000;
+  const offsetMs = 8 * 60 * 1000; // 8 min per tab
+  const spacingMs = 2750; // delay per item
+
+  const timers = [];
+
+  const refreshTab = async (tab) => {
+    if (tab === "Dashboard" || showSettings) return;
+    const rows = data[tab] || [];
+    let changed = false;
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const name = r?.name?.trim();
+      if (!name || r.locked) continue;
+
       try {
-        for (const tab of tabs) {
-          if (tab === "Dashboard") continue;
-          const rows = data[tab] || [];
-          for (let i = 0; i < rows.length; i++) {
-            const name = rows[i]?.name?.trim();
-            if (!name) continue;
-            if (rows[i].locked) continue;
-            // eslint-disable-next-line no-await-in-loop
-            await fetchPriceFor(tab, i);
-            // eslint-disable-next-line no-await-in-loop
-            await new Promise((r) => setTimeout(r, 200)); // gentle pacing
+        const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
+        const json = await res.json();
+
+        if (json.ok && json.lowest != null) {
+          const newPrice = Number(json.lowest);
+          const oldPrice = Number(r.price || 0);
+          if (newPrice !== oldPrice) {
+            const updated = [...rows];
+            const fluctPct =
+              oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
+            updated[i] = { ...r, prevPrice: oldPrice, price: newPrice, fluctPct };
+            setData((prev) => ({ ...prev, [tab]: updated }));
+            changed = true;
           }
         }
-        setLastUpdatedAt(formatLisbonHM());
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.warn("Failed to fetch price for", name, err);
       }
-    };
 
-    // initial run
-    doRefreshAll();
+      // spacing between item requests
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, spacingMs));
+    }
 
-    const minutes = Math.max(1, Number(settings.refreshMinutes || 10));
-    refreshTimerRef.current = setInterval(doRefreshAll, minutes * 60 * 1000);
+    if (changed) setLastUpdatedAt(formatLisbonHM());
+  };
 
-    return () => {
-      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs, settings.refreshMinutes, showSettings]);
+  // schedule each tab with a unique offset (8 min apart)
+  tabs.forEach((tab, idx) => {
+    const delay = idx * offsetMs;
+    const runNow = () => refreshTab(tab);
+    runNow(); // immediate run once
+
+    const id = setInterval(runNow, hourMs);
+    timers.push(id);
+
+    // add offset start
+    setTimeout(runNow, delay);
+  });
+
+  refreshTimerRef.current = timers;
+
+  return () => {
+    for (const t of timers) clearInterval(t);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [tabs, showSettings]);
 
   /* ------------------------------ Settings helpers ---------------------------- */
   const addColorPreset = () => {
