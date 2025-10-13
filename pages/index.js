@@ -780,44 +780,55 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating Color Menu (Portal-like: fixed to viewport) */}
-      {colorMenu.open && (
-        <div
-          id="color-menu-portal"
-          className="fixed z-50"
-          style={{ top: colorMenu.y, left: colorMenu.x }}
+{/* Floating Color Menu (fixed to viewport, fade+slide) */}
+{colorMenu.open && (
+  <div
+    id="color-menu-portal"
+    className="fixed z-50"
+    style={{
+      top: colorMenu.y,
+      left: colorMenu.x,
+      animation: "fadeSlide 0.15s ease-out",
+    }}
+  >
+    <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
+      <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+      <button
+        onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, "")}
+        className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
+      >
+        <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
+        None
+      </button>
+      {settings.colors.map((c) => (
+        <button
+          key={c.name + c.hex}
+          onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, c.hex)}
+          className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
         >
-          <div
-            className="origin-top-left animate-[fadeSlide_.15s_ease-out] bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]"
-            style={{
-              // simple keyframes without CSS file
-              animationName: undefined,
-            }}
-          >
-            <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
-            <button
-              onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, "")}
-              className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-            >
-              <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
-              None
-            </button>
-            {settings.colors.map((c) => (
-              <button
-                key={c.name + c.hex}
-                onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, c.hex)}
-                className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-              >
-                <span
-                  className="h-3 w-3 rounded border border-neutral-600"
-                  style={{ backgroundColor: c.hex }}
-                />
-                {c.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+          <span
+            className="h-3 w-3 rounded border border-neutral-600"
+            style={{ backgroundColor: c.hex }}
+          />
+          {c.name}
+        </button>
+      ))}
+    </div>
+    {/* lightweight embedded animation style */}
+    <style jsx global>{`
+      @keyframes fadeSlide {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    `}</style>
+  </div>
+)}
 
       {loading && (
         <div className="fixed bottom-4 right-4 bg-neutral-900/80 px-4 py-2 rounded-lg shadow border border-neutral-700 text-sm text-neutral-300">
