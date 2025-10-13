@@ -338,6 +338,20 @@ const applyColorToRow = (tab, i, hex) => {
       <header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
+    <div className="flex-1 flex justify-center">
+  <button
+    onClick={() => {
+      setActiveTab("Dashboard");
+      setShowSettings(false);
+    }}
+    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition
+      ${activeTab === "Dashboard" 
+        ? "bg-blue-800 text-white shadow-md" 
+        : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300"}`}
+  >
+    Dashboard
+  </button>
+</div>
           <div className="flex items-center gap-3">
             <button
               onClick={addTab}
