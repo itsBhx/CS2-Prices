@@ -1,177 +1,106 @@
-console.log("✅ Tailwind connected!");
+import { useEffect, useState } from "react";
 
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+export default function Home() {
+  const [tabs, setTabs] = useState([]);
+  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [inventory, setInventory] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-const Navbar = ({ tabs, setTabs, active, setActive }) => {
+  // Load saved data from localStorage (browser only)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedTabs = JSON.parse(localStorage.getItem("cs2-tabs")) || ["Dashboard"];
+      const savedInventory = JSON.parse(localStorage.getItem("cs2-inventory")) || [];
+      setTabs(savedTabs);
+      setInventory(savedInventory);
+    }
+  }, []);
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cs2-tabs", JSON.stringify(tabs));
+      localStorage.setItem("cs2-inventory", JSON.stringify(inventory));
+    }
+  }, [tabs, inventory]);
+
+  // Add or remove custom tabs (Majors, Stickers, etc.)
   const addTab = () => {
-    const name = prompt("New tab name:");
-    if (!name) return;
-    const newTab = { id: Date.now(), name, rows: [], cols: ["Name", "Quantity"] };
-    setTabs([...tabs, newTab]);
-    setActive(newTab.id);
+    const name = prompt("Enter new tab name:");
+    if (name && !tabs.includes(name)) setTabs([...tabs, name]);
   };
 
-  const deleteTab = (id) => {
-    if (!confirm("Delete this tab?")) return;
-    const updated = tabs.filter((t) => t.id !== id);
-    setTabs(updated);
-    if (active === id) setActive(null);
+  const removeTab = (name) => {
+    if (name !== "Dashboard" && confirm(`Delete tab "${name}"?`)) {
+      setTabs(tabs.filter((t) => t !== name));
+      if (activeTab === name) setActiveTab("Dashboard");
+    }
   };
+
+  // Mock total for demonstration
+  const totalValue = inventory.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2);
 
   return (
-    <nav className="flex items-center justify-between bg-gray-900 text-gray-100 px-4 py-2 shadow">
-      <h1 className="text-lg font-bold tracking-wide">💎 CS2 Prices</h1>
-      <div className="flex items-center gap-2 overflow-x-auto">
-        {tabs.map((t) => (
-          <div
-            key={t.id}
-            className={`flex items-center gap-1 px-3 py-1 rounded-lg cursor-pointer transition ${
-              active === t.id
-                ? "bg-teal-600 text-white"
-                : "bg-gray-800 hover:bg-gray-700"
-            }`}
-            onClick={() => setActive(t.id)}
+    <div className="min-h-screen bg-gray-950 text-gray-100 font-sans">
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900">
+        <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={addTab}
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm"
           >
-            {t.name}
-            <button
-              className="text-xs opacity-70 hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteTab(t.id);
-              }}
-            >
-              🗑️
-            </button>
+            ＋ Add Tab
+          </button>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <nav className="flex flex-wrap gap-2 px-6 py-3 bg-gray-900 border-b border-gray-800">
+        {tabs.map((tab) => (
+          <div
+            key={tab}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer ${
+              tab === activeTab ? "bg-blue-600 text-white" : "bg-gray-800 hover:bg-gray-700"
+            }`}
+            onClick={() => setActiveTab(tab)}
+          >
+            <span>{tab}</span>
+            {tab !== "Dashboard" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeTab(tab);
+                }}
+                className="text-xs text-gray-300 hover:text-red-400"
+              >
+                ✕
+              </button>
+            )}
           </div>
         ))}
-        <button
-          onClick={addTab}
-          className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-1 rounded-lg"
-        >
-          + New Tab
-        </button>
-      </div>
-    </nav>
-  );
-};
+      </nav>
 
-const PageGrid = ({ page }) => {
-  const [rows, setRows] = useState(page.rows || []);
-  const [cols, setCols] = useState(page.cols || ["Name", "Quantity"]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      `page-${page.id}`,
-      JSON.stringify({ rows, cols })
-    );
-  }, [rows, cols, page.id]);
-
-  const addRow = () => {
-    const newRow = Array(cols.length).fill("");
-    setRows([...rows, newRow]);
-  };
-
-  const addCol = () => {
-    const name = prompt("Column name:");
-    if (!name) return;
-    setCols([...cols, name]);
-    setRows(rows.map((r) => [...r, ""]));
-  };
-
-  const updateCell = (r, c, value) => {
-    const updated = [...rows];
-    updated[r][c] = value;
-    setRows(updated);
-  };
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-end gap-2 mb-3">
-        <button
-          onClick={addCol}
-          className="bg-gray-700 hover:bg-gray-600 text-sm px-3 py-1 rounded text-white"
-        >
-          + Column
-        </button>
-        <button
-          onClick={addRow}
-          className="bg-teal-600 hover:bg-teal-500 text-sm px-3 py-1 rounded text-white"
-        >
-          + Row
-        </button>
-      </div>
-      <div className="overflow-x-auto border border-gray-700 rounded-lg">
-        <table className="w-full text-sm text-gray-100">
-          <thead className="bg-gray-800">
-            <tr>
-              {cols.map((c, i) => (
-                <th key={i} className="px-3 py-2 text-left">
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="odd:bg-gray-900 even:bg-gray-800">
-                {r.map((cell, j) => (
-                  <td key={j} className="px-3 py-2">
-                    <input
-                      className="bg-transparent border border-gray-700 rounded w-full px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                      value={cell}
-                      onChange={(e) => updateCell(i, j, e.target.value)}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-export default function App() {
-  const [tabs, setTabs] = useState(() => {
-    const saved = localStorage.getItem("tabs");
-    return saved ? JSON.parse(saved) : [{ id: 1, name: "Dashboard", rows: [], cols: [] }];
-  });
-  const [active, setActive] = useState(tabs[0]?.id || null);
-
-  useEffect(() => {
-    localStorage.setItem("tabs", JSON.stringify(tabs));
-  }, [tabs]);
-
-  const activeTab = tabs.find((t) => t.id === active);
-
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <Navbar tabs={tabs} setTabs={setTabs} active={active} setActive={setActive} />
+      {/* Main Content */}
       <main className="p-6">
-        <AnimatePresence mode="wait">
-          {activeTab ? (
-            <motion.div
-              key={activeTab.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {activeTab.name === "Dashboard" ? (
-                <div className="text-center text-gray-400 mt-20">
-                  <h2 className="text-2xl font-bold mb-2">Welcome to your CS2 Inventory Dashboard</h2>
-                  <p>Create tabs using the “+ New Tab” button to begin tracking items.</p>
-                </div>
-              ) : (
-                <PageGrid page={activeTab} />
-              )}
-            </motion.div>
-          ) : (
-            <p>No tab selected.</p>
-          )}
-        </AnimatePresence>
+        {activeTab === "Dashboard" ? (
+          <div>
+            <h2 className="text-2xl font-semibold mb-3">Your Inventory Overview</h2>
+            <p className="text-gray-400 mb-4">
+              Current Total Value: <span className="text-green-400 font-semibold">{totalValue}€</span>
+            </p>
+            <p className="text-sm text-gray-500">
+              {lastUpdated ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}` : ""}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <h2 className="text-xl font-semibold">{activeTab}</h2>
+            <p className="text-gray-400 mt-2">
+              This is your <strong>{activeTab}</strong> collection page.
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
