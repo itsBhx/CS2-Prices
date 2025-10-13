@@ -161,13 +161,13 @@ export default function Home() {
     setSnapshots(newSnaps);
   }, [grandTotal, totals, tabs, snapshots, settings.snapshotTimeHHMM]);
 
-/* -------------------------- Global sequential refresher -------------------------- */
+/* -------------------------- Global sequential refresher (fixed) -------------------------- */
 useEffect(() => {
   if (!tabs.length) return;
   let isCancelled = false;
 
   const spacingMs = 3000; // 3s between requests
-  const loopDelay = 60 * 1000; // 1 minute before restarting full cycle
+  const loopDelay = 60 * 1000; // 1 minute between full cycles
 
   const refreshAllSequentially = async () => {
     for (const tab of tabs) {
@@ -210,17 +210,19 @@ useEffect(() => {
           console.warn("Failed to fetch price for", name, err);
         }
 
-        // wait between requests to avoid 429s
+        // wait 3s before next item
         // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => setTimeout(r, spacingMs));
       }
 
+      // atomic update per tab
       setData((prev) => ({ ...prev, [tab]: updatedRows }));
-      setLastUpdatedAt(formatLisbonHM());
     }
 
+    setLastUpdatedAt(formatLisbonHM());
+
     if (!isCancelled) {
-      console.log("✅ Full refresh cycle completed — restarting soon...");
+      console.log("✅ Cycle completed, restarting soon...");
       setTimeout(refreshAllSequentially, loopDelay);
     }
   };
@@ -230,7 +232,9 @@ useEffect(() => {
   return () => {
     isCancelled = true;
   };
-}, [tabs, data, showSettings]);
+  // 👇 important: only run once on mount or when tabs/settings change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [tabs, showSettings]);
 
   /* ------------------------------- Color menu ------------------------------- */
   const openColorMenuAtButton = (tab, i, e) => {
