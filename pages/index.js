@@ -239,39 +239,53 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [tabs, showSettings, settings.refreshMinutes]);
 
-  /* ------------------------------- Color menu ------------------------------- */
-  const openColorMenuAtButton = (tab, i, e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setColorMenu({ open: true, tab, index: i, x: rect.left, y: rect.bottom + 6 });
-  };
-  const closeColorMenu = () => setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
+/* ------------------------------- Color menu ------------------------------- */
+const openColorMenuAtButton = (tab, i, e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  setColorMenu({
+    open: true,
+    tab,
+    index: i,
+    x: rect.left,
+    y: rect.bottom + 6,
+  });
+};
+
+const closeColorMenu = () =>
+  setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
+
 useEffect(() => {
   if (!colorMenu.open) return;
 
-  const handleClick = (e) => {
+  const onDocClick = (e) => {
     const menuEl = document.getElementById("color-menu-portal");
-    if (menuEl && menuEl.contains(e.target)) return; // ignore clicks inside menu
+    // ✅ ignore clicks inside the color menu
+    if (menuEl && menuEl.contains(e.target)) return;
     closeColorMenu();
   };
 
-  window.addEventListener("click", handleClick);
-  window.addEventListener("scroll", closeColorMenu, true);
-  window.addEventListener("resize", closeColorMenu);
+  const onScroll = () => closeColorMenu();
+  const onResize = () => closeColorMenu();
+
+  // ✅ document listener fixes instant close issue
+  document.addEventListener("click", onDocClick);
+  window.addEventListener("scroll", onScroll, true);
+  window.addEventListener("resize", onResize);
 
   return () => {
-    window.removeEventListener("click", handleClick);
-    window.removeEventListener("scroll", closeColorMenu, true);
-    window.removeEventListener("resize", closeColorMenu);
+    document.removeEventListener("click", onDocClick);
+    window.removeEventListener("scroll", onScroll, true);
+    window.removeEventListener("resize", onResize);
   };
 }, [colorMenu.open]);
 
-  const applyColorToRow = (tab, i, hex) => {
-    const rows = [...(data[tab] || [])];
-    if (!rows[i]) return;
-    rows[i].colorHex = hex;
-    setData({ ...data, [tab]: rows });
-    closeColorMenu();
-  };
+const applyColorToRow = (tab, i, hex) => {
+  const rows = [...(data[tab] || [])];
+  if (!rows[i]) return;
+  rows[i].colorHex = hex;
+  setData({ ...data, [tab]: rows });
+  closeColorMenu();
+};
 
   /* ------------------------------- Render UI ------------------------------- */
   const dashSnap = snapshots["dashboard"];
