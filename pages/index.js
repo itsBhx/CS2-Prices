@@ -161,15 +161,18 @@ export default function Home() {
     setSnapshots(newSnaps);
   }, [grandTotal, totals, tabs, snapshots, settings.snapshotTimeHHMM]);
 
-/* -------------------------- Global sequential refresher (fixed) -------------------------- */
+/* -------------------------- Global sequential refresher (multi-tab + delay) -------------------------- */
 useEffect(() => {
   if (!tabs.length) return;
   let isCancelled = false;
 
-  const spacingMs = 3000; // 3s between requests
-  const loopDelay = 60 * 1000; // 1 minute between full cycles
+  const spacingMs = 3000; // 3s between items
+  const delayMinutes = settings.refreshMinutes || 60;
+  const loopDelay = delayMinutes * 60 * 1000;
 
   const refreshAllSequentially = async () => {
+    console.log(`🔄 Starting full refresh cycle (${delayMinutes} min interval)`);
+
     for (const tab of tabs) {
       if (tab === "Dashboard" || showSettings) continue;
       const rows = data[tab] || [];
@@ -191,8 +194,8 @@ useEffect(() => {
             const newPrice = Number(json.lowest);
             const oldPrice = Number(row.price || 0);
             const base = row.prevPrice || oldPrice || newPrice;
-            let fluctPct = 0;
 
+            let fluctPct = 0;
             if (base > 0) {
               fluctPct = ((newPrice - base) / base) * 100;
               if (fluctPct > 300) fluctPct = 300;
@@ -207,22 +210,22 @@ useEffect(() => {
             };
           }
         } catch (err) {
-          console.warn("Failed to fetch price for", name, err);
+          console.warn("❌ Failed to fetch price for", name, err);
         }
 
-        // wait 3s before next item
+        // delay between items to avoid 429s
         // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => setTimeout(r, spacingMs));
       }
 
-      // atomic update per tab
       setData((prev) => ({ ...prev, [tab]: updatedRows }));
+      console.log(`✅ Finished tab: ${tab}`);
     }
 
     setLastUpdatedAt(formatLisbonHM());
+    console.log(`⏸ Waiting ${delayMinutes} min before next refresh cycle…`);
 
     if (!isCancelled) {
-      console.log("✅ Cycle completed, restarting soon...");
       setTimeout(refreshAllSequentially, loopDelay);
     }
   };
@@ -232,9 +235,9 @@ useEffect(() => {
   return () => {
     isCancelled = true;
   };
-  // 👇 important: only run once on mount or when tabs/settings change
+  // only rerun if tabs or settings change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [tabs, showSettings]);
+}, [tabs, showSettings, settings.refreshMinutes]);
 
   /* ------------------------------- Color menu ------------------------------- */
   const openColorMenuAtButton = (tab, i, e) => {
