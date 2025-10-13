@@ -535,32 +535,67 @@ const applyColorToRow = (tab, i, hex) => {
             </section>
 
             <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-              <h2 className="text-xl font-semibold mb-4">Behavior</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-1">Snapshot time (WEST)</label>
-                  <input
-                    type="time"
-                    value={settings.snapshotTimeHHMM}
-                    onChange={(e) =>
-                      setSettings({ ...settings, snapshotTimeHHMM: e.target.value })
-                    }
-                    className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-1">Auto refresh (min)</label>
-                  <input
-                    type="number"
-                    value={settings.refreshMinutes}
-                    onChange={(e) =>
-                      setSettings({ ...settings, refreshMinutes: Number(e.target.value) })
-                    }
-                    className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-                  />
-                </div>
-              </div>
-            </section>
+  <h2 className="text-xl font-semibold mb-4">Behavior</h2>
+
+  {/* Local copy of settings so user can edit before saving */}
+  {(() => {
+    const [pendingSettings, setPendingSettings] = useState(settings);
+    const handleSave = () => {
+      setSettings(pendingSettings);
+      alert("✅ Settings saved!");
+    };
+
+    return (
+      <>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-neutral-400 mb-1">
+              Snapshot time (WEST)
+            </label>
+            <input
+              type="time"
+              value={pendingSettings.snapshotTimeHHMM}
+              onChange={(e) =>
+                setPendingSettings({
+                  ...pendingSettings,
+                  snapshotTimeHHMM: e.target.value,
+                })
+              }
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-neutral-400 mb-1">
+              Auto refresh (min)
+            </label>
+            <input
+              type="number"
+              value={pendingSettings.refreshMinutes}
+              onChange={(e) =>
+                setPendingSettings({
+                  ...pendingSettings,
+                  refreshMinutes: Number(e.target.value),
+                })
+              }
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={handleSave}
+            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+          >
+            💾 Save Changes
+          </button>
+        </div>
+      </>
+    );
+  })()}
+</section>
+
           </div>
         )}
 
