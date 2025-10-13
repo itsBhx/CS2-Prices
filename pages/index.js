@@ -294,7 +294,7 @@ useEffect(() => {
 
   const hourMs = 60 * 60 * 1000; // 1 hour
   const offsetMs = 8 * 60 * 1000; // 8 min between tab starts
-  const spacingMs = 2750; // delay per item to avoid 429s
+  const spacingMs = 2900; // delay per item to avoid 429s
 
   const timers = [];
 
@@ -316,19 +316,25 @@ useEffect(() => {
         if (json.ok && json.lowest != null) {
           const newPrice = Number(json.lowest);
           const oldPrice = Number(row.price || 0);
-          const same = newPrice === oldPrice;
+const same = newPrice === oldPrice;
 
-          if (!same) {
-            const fluctPct =
-              oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
+if (!same) {
+  let fluctPct = row.fluctPct ?? null;
+  if (oldPrice > 0) {
+    fluctPct = ((newPrice - oldPrice) / oldPrice) * 100;
+  } else if (row.prevPrice > 0) {
+    fluctPct = ((newPrice - row.prevPrice) / row.prevPrice) * 100;
+  } else {
+    fluctPct = 0; // fallback for first-time price
+  }
 
-            updatedRows[i] = {
-              ...row,
-              prevPrice: oldPrice > 0 ? oldPrice : newPrice,
-              price: newPrice,
-              fluctPct,
-            };
-          }
+  updatedRows[i] = {
+    ...row,
+    prevPrice: oldPrice > 0 ? oldPrice : newPrice,
+    price: newPrice,
+    fluctPct,
+  };
+}
         }
       } catch (err) {
         console.warn("Failed to fetch price for", name, err);
