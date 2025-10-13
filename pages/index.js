@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 /* ======================= Time (Lisbon / WEST) helpers ======================= */
 const LISBON_TZ = "Europe/Lisbon";
-
 function formatLisbonHM(date = new Date()) {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: LISBON_TZ,
@@ -11,40 +10,26 @@ function formatLisbonHM(date = new Date()) {
     hour12: false,
   }).format(date);
 }
-
 function todayKeyLisbon(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: LISBON_TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(date); // YYYY-MM-DD
+  }).format(date);
 }
-
-function lisbonNowParts() {
-  const d = new Date();
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: LISBON_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
-  const get = (t) => Number(parts.find((p) => p.type === t)?.value || 0);
-  return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour"), minute: get("minute") };
-}
-
 function hasPassedLisbonHHMM(targetHHMM = "19:00") {
-  const { hour, minute } = lisbonNowParts();
-  const [th, tm] = targetHHMM.split(":").map((x) => Number(x));
-  if (hour > th) return true;
-  if (hour < th) return false;
-  return minute >= tm;
+  const now = new Date();
+  const [h, m] = targetHHMM.split(":").map(Number);
+  const tzNow = new Date(
+    now.toLocaleString("en-US", { timeZone: LISBON_TZ })
+  );
+  return (
+    tzNow.getHours() > h || (tzNow.getHours() === h && tzNow.getMinutes() >= m)
+  );
 }
 
-/* ============================= UI / format utils ============================ */
+/* ============================= UI helpers ============================= */
 const fmtMoney = (n) => (isFinite(n) ? Number(n).toFixed(2) : "0.00");
 const sign = (n) => (n > 0 ? "+" : "");
 function hexToRgba(hex, alpha = 0.5) {
@@ -59,16 +44,16 @@ function hexToRgba(hex, alpha = 0.5) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/* ============================= Default Settings ============================= */
+/* ============================= Defaults ============================= */
 const DEFAULT_SETTINGS = {
   colors: [
-    { name: "Red",    hex: "#ea9999" },
-    { name: "Pink",   hex: "#d5a6bd" },
+    { name: "Red", hex: "#ea9999" },
+    { name: "Pink", hex: "#d5a6bd" },
     { name: "Purple", hex: "#b4a7d6" },
-    { name: "Blue",   hex: "#a4c2f4" },
+    { name: "Blue", hex: "#a4c2f4" },
   ],
-  snapshotTimeHHMM: "19:00", // WEST
-  refreshMinutes: 10,        // global auto refresh
+  snapshotTimeHHMM: "19:00",
+  refreshMinutes: 60,
 };
 
 /* ================================== App ==================================== */
@@ -76,104 +61,51 @@ export default function Home() {
   const [tabs, setTabs] = useState([]);
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [showSettings, setShowSettings] = useState(false);
-
-  // data: { [tabName]: Array<{name, qty, price, prevPrice?, fluctPct?, colorHex?, locked?:boolean}> }
   const [data, setData] = useState({});
   const [totals, setTotals] = useState({});
-  const [snapshots, setSnapshots] = useState({}); // { key: { value, ts, dateKey } }
+  const [snapshots, setSnapshots] = useState({});
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [colorMenu, setColorMenu] = useState({ open: false, tab: null, index: null, x: 0, y: 0 });
+  const refreshTimerRef = useRef([]);
 
-  const [loading, setLoading] = useState(false);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState(null); // "HH:MM"
-
-  // Floating color menu state (portal)
-  const [colorMenu, setColorMenu] = useState({
-    open: false,
-    tab: null,
-    index: null,
-    x: 0,
-    y: 0,
-  });
-
-  const refreshTimerRef = useRef(null);
-
-  // Floating link edit menu state
-const [linkMenu, setLinkMenu] = useState({
-  open: false,
-  tab: null,
-  index: null,
-  x: 0,
-  y: 0,
-});
-
-  /* ----------------------------- Load / persist ------------------------------ */
+  /* --------------------------- Load / Save localStorage --------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const savedTabs = JSON.parse(localStorage.getItem("cs2-tabs")) || ["Dashboard"];
-    const savedData = JSON.parse(localStorage.getItem("cs2-data")) || {};
-    const savedSnaps = JSON.parse(localStorage.getItem("cs2-snapshots") || "{}");
-    const savedSettings = JSON.parse(localStorage.getItem("cs2-settings") || "null");
-    const savedUpdated = localStorage.getItem("cs2-lastUpdatedAt") || null;
-
-    setTabs(savedTabs);
-    setData(savedData);
-    setSnapshots(savedSnaps);
-    setSettings(savedSettings || DEFAULT_SETTINGS);
-    setLastUpdatedAt(savedUpdated);
+    setTabs(JSON.parse(localStorage.getItem("cs2-tabs")) || ["Dashboard"]);
+    setData(JSON.parse(localStorage.getItem("cs2-data")) || {});
+    setSnapshots(JSON.parse(localStorage.getItem("cs2-snapshots")) || {});
+    setSettings(JSON.parse(localStorage.getItem("cs2-settings")) || DEFAULT_SETTINGS);
+    setLastUpdatedAt(localStorage.getItem("cs2-lastUpdatedAt") || null);
   }, []);
-
+  useEffect(() => { localStorage.setItem("cs2-tabs", JSON.stringify(tabs)); }, [tabs]);
+  useEffect(() => { localStorage.setItem("cs2-data", JSON.stringify(data)); }, [data]);
+  useEffect(() => { localStorage.setItem("cs2-snapshots", JSON.stringify(snapshots)); }, [snapshots]);
+  useEffect(() => { localStorage.setItem("cs2-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("cs2-tabs", JSON.stringify(tabs));
-  }, [tabs]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("cs2-data", JSON.stringify(data));
-  }, [data]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("cs2-snapshots", JSON.stringify(snapshots));
-  }, [snapshots]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("cs2-settings", JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (lastUpdatedAt) localStorage.setItem("cs2-lastUpdatedAt", lastUpdatedAt);
+    if (lastUpdatedAt)
+      localStorage.setItem("cs2-lastUpdatedAt", lastUpdatedAt);
   }, [lastUpdatedAt]);
 
-  /* -------------------------------- Tab mgmt -------------------------------- */
+  /* ------------------------------- Tabs & Rows ------------------------------- */
   const addTab = () => {
-    const name = prompt("Enter new tab name:");
-    if (!name) return;
-    if (tabs.includes(name)) return;
-    const nextTabs = [...tabs, name];
-    setTabs(nextTabs);
+    const name = prompt("New tab name:");
+    if (!name || tabs.includes(name)) return;
+    setTabs([...tabs, name]);
     setData({ ...data, [name]: [] });
     setActiveTab(name);
     setShowSettings(false);
   };
-
   const removeTab = (tab) => {
     if (tab === "Dashboard") return;
-    if (!confirm(`Delete "${tab}" tab?`)) return;
+    if (!confirm(`Delete tab "${tab}"?`)) return;
     const nextTabs = tabs.filter((t) => t !== tab);
     const nextData = { ...data };
     delete nextData[tab];
-    const nextSnaps = { ...snapshots };
-    delete nextSnaps[tab];
     setTabs(nextTabs);
     setData(nextData);
-    setSnapshots(nextSnaps);
-    if (activeTab === tab) setActiveTab("Dashboard");
+    setActiveTab("Dashboard");
   };
-
-  /* ------------------------------- Row mgmt --------------------------------- */
   const addRow = () => {
     if (activeTab === "Dashboard" || showSettings) return;
     const rows = data[activeTab] || [];
@@ -182,21 +114,19 @@ const [linkMenu, setLinkMenu] = useState({
       [activeTab]: [...rows, { name: "", qty: 1, price: 0, colorHex: "", locked: false }],
     });
   };
-
   const deleteRow = (i) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
+    if (!confirm("Delete this row?")) return;
     const rows = [...(data[activeTab] || [])];
     rows.splice(i, 1);
     setData({ ...data, [activeTab]: rows });
   };
-
   const toggleLockRow = (i) => {
     const rows = [...(data[activeTab] || [])];
     rows[i].locked = !rows[i].locked;
     setData({ ...data, [activeTab]: rows });
   };
 
-  /* ---------------------------- Totals per tab ------------------------------- */
+  /* ----------------------------- Totals per tab ----------------------------- */
   useEffect(() => {
     const t = {};
     for (const tab of tabs) {
@@ -208,315 +138,138 @@ const [linkMenu, setLinkMenu] = useState({
     }
     setTotals(t);
   }, [data, tabs]);
-
-  const grandTotalNum = useMemo(
-    () => Object.values(totals).reduce((a, b) => a + (b || 0), 0),
+  const grandTotal = useMemo(
+    () => Object.values(totals).reduce((a, b) => a + b, 0),
     [totals]
   );
 
-  /* --------------------- Dashboard fluctuation vs snapshot -------------------- */
-  const todayKey = todayKeyLisbon();
-  const dashSnap = snapshots["dashboard"];
-  const dashPct =
-    dashSnap && dashSnap.value > 0
-      ? ((grandTotalNum - dashSnap.value) / dashSnap.value) * 100
-      : null;
-
-  /* ----------------------- Daily snapshot at HH:MM WEST ----------------------- */
+  /* -------------------------- Daily snapshots -------------------------- */
   useEffect(() => {
-    const targetHHMM = settings.snapshotTimeHHMM || "19:00";
-    if (!hasPassedLisbonHHMM(targetHHMM)) return;
-
-    const needSnapshot = !dashSnap || dashSnap.dateKey !== todayKey;
-    if (!needSnapshot) return;
-
+    const key = todayKeyLisbon();
+    if (!hasPassedLisbonHHMM(settings.snapshotTimeHHMM)) return;
+    if (snapshots["dashboard"]?.dateKey === key) return;
     const newSnaps = { ...snapshots };
-    newSnaps["dashboard"] = {
-      value: Number(grandTotalNum.toFixed(2)),
-      ts: Date.now(),
-      dateKey: todayKey,
-    };
+    newSnaps["dashboard"] = { value: grandTotal, dateKey: key, ts: Date.now() };
     for (const tab of tabs) {
       if (tab === "Dashboard") continue;
-      const value = Number((totals[tab] || 0).toFixed(2));
-      newSnaps[tab] = { value, ts: Date.now(), dateKey: todayKey };
+      newSnaps[tab] = {
+        value: totals[tab] || 0,
+        dateKey: key,
+        ts: Date.now(),
+      };
     }
     setSnapshots(newSnaps);
-  }, [grandTotalNum, totals, tabs, dashSnap, todayKey, settings.snapshotTimeHHMM, snapshots]);
+  }, [grandTotal, totals, tabs, snapshots, settings.snapshotTimeHHMM]);
 
-  /* -------------------------- Fetch & global refresh -------------------------- */
-async function fetchPriceFor(tabName, rowIndex) {
-  const currentData = data[tabName] || [];
-  const row = currentData[rowIndex];
-  if (!row || !row.name?.trim() || row.locked) return;
-
-  try {
-    const res = await fetch(`/api/price?name=${encodeURIComponent(row.name)}`);
-    const json = await res.json();
-    if (!json.ok || json.lowest == null) return;
-
-    const newPrice = Number(json.lowest);
-    const oldPrice = Number(row.price) || 0;
-    const samePrice = newPrice === oldPrice;
-
-    if (!samePrice) {
-      setData((prev) => {
-        const newTabRows = [...(prev[tabName] || [])];
-        const prevRow = newTabRows[rowIndex];
-        if (!prevRow) return prev;
-
-        const fluctPct =
-          oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
-
-        newTabRows[rowIndex] = {
-          ...prevRow,
-          prevPrice: oldPrice > 0 ? oldPrice : newPrice,
-          price: newPrice,
-          fluctPct,
-        };
-
-        return { ...prev, [tabName]: newTabRows };
-      });
-    }
-  } catch (e) {
-    console.warn("fetchPriceFor error:", e);
-  }
-}
-
-// Improved global refresh system with staggered tabs + correct fluctuation
-useEffect(() => {
-  if (!tabs.length) return;
-
-  // clear previous timers
-  if (refreshTimerRef.current) {
+  /* -------------------------- Auto refresh system -------------------------- */
+  useEffect(() => {
+    if (!tabs.length) return;
     refreshTimerRef.current.forEach((t) => clearInterval(t));
-  }
+    refreshTimerRef.current = [];
 
-  const hourMs = 60 * 60 * 1000; // 1h per full cycle
-  const offsetMs = 8 * 60 * 1000; // 8 min between tabs
-  const spacingMs = 3000; // 3s between items to avoid 429s
-  const timers = [];
+    const hourMs = 60 * 60 * 1000;
+    const offsetMs = 8 * 60 * 1000;
+    const spacingMs = 3000;
 
-  // refresh a single tab
-  const refreshTab = async (tab) => {
-    if (tab === "Dashboard" || showSettings) return;
-    const rows = data[tab] || [];
-    if (!rows.length) return;
-
-    const updatedRows = [...rows];
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const name = row?.name?.trim();
-      if (!name || row.locked) continue;
-
-      try {
-        const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
-        const json = await res.json();
-
-        if (json.ok && json.lowest != null) {
-          const newPrice = Number(json.lowest);
-          const oldPrice = Number(row.price || 0);
-          const prevBase = row.prevPrice || oldPrice || newPrice;
-          const oldTotal = prevBase * (Number(row.qty) || 0);
-          const newTotal = newPrice * (Number(row.qty) || 0);
-
-          let fluctPct = 0;
-          if (oldTotal > 0) {
-            fluctPct = ((newTotal - oldTotal) / oldTotal) * 100;
-            // clamp abnormal spikes
-            if (fluctPct > 300) fluctPct = 300;
-            if (fluctPct < -300) fluctPct = -300;
-          }
-
-          updatedRows[i] = {
-            ...row,
-            prevPrice: prevBase > 0 ? prevBase : newPrice,
-            price: newPrice,
-            fluctPct,
-          };
-        }
-      } catch (err) {
-        console.warn("Failed to fetch price for", name, err);
-      }
-
-      // wait between requests
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, spacingMs));
-    }
-
-    // one atomic update per tab
-    setData((prev) => ({ ...prev, [tab]: updatedRows }));
-    setLastUpdatedAt(formatLisbonHM());
-  };
-
-  // schedule per-tab refresh with staggered offsets
-  tabs.forEach((tab, idx) => {
-    if (tab === "Dashboard") return;
-    const startDelay = idx * offsetMs;
-
-    const startTimer = setTimeout(() => {
-      refreshTab(tab); // immediate first run
-      const interval = setInterval(() => refreshTab(tab), hourMs);
-      timers.push(interval);
-    }, startDelay);
-
-    timers.push(startTimer);
-  });
-
-  refreshTimerRef.current = timers;
-
-  return () => {
-    timers.forEach((t) => clearInterval(t));
-  };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [tabs, showSettings]);
-
-  // Temporary manual refresh button (debug/testing)
-const forceFullRefresh = async () => {
-  setLoading(true);
-  try {
-    for (const tab of tabs) {
-      if (tab === "Dashboard") continue;
+    const refreshTab = async (tab) => {
+      if (tab === "Dashboard" || showSettings) return;
       const rows = data[tab] || [];
-      const updatedRows = [...rows];
+      if (!rows.length) return;
 
+      const updated = [...rows];
       for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const name = row?.name?.trim();
-        if (!name || row.locked) continue;
+        const r = rows[i];
+        const name = r?.name?.trim();
+        if (!name || r.locked) continue;
 
         try {
           const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
           const json = await res.json();
-
           if (json.ok && json.lowest != null) {
             const newPrice = Number(json.lowest);
-            const oldPrice = Number(row.price || 0);
-            const same = newPrice === oldPrice;
-
-            if (!same) {
-              const fluctPct =
-                oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
-
-              updatedRows[i] = {
-                ...row,
-                prevPrice: oldPrice > 0 ? oldPrice : newPrice,
-                price: newPrice,
-                fluctPct,
-              };
+            const oldPrice = Number(r.price || 0);
+            const prevBase = r.prevPrice || oldPrice || newPrice;
+            const oldTotal = prevBase * (r.qty || 0);
+            const newTotal = newPrice * (r.qty || 0);
+            let fluctPct = 0;
+            if (oldTotal > 0) {
+              fluctPct = ((newTotal - oldTotal) / oldTotal) * 100;
+              if (fluctPct > 300) fluctPct = 300;
+              if (fluctPct < -300) fluctPct = -300;
             }
+            updated[i] = {
+              ...r,
+              prevPrice: prevBase > 0 ? prevBase : newPrice,
+              price: newPrice,
+              fluctPct,
+            };
           }
         } catch (err) {
-          console.warn("Manual refresh failed for", name, err);
+          console.warn("fetch error", name, err);
         }
-
-        // wait a little between requests
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, 2750));
+        await new Promise((r) => setTimeout(r, spacingMs));
       }
+      setData((prev) => ({ ...prev, [tab]: updated }));
+      setLastUpdatedAt(formatLisbonHM());
+    };
 
-      // save updates for tab
-      setData((prev) => ({ ...prev, [tab]: updatedRows }));
-    }
-    setLastUpdatedAt(formatLisbonHM());
-  } finally {
-    setLoading(false);
-  }
-};
-
-  /* ------------------------------ Settings helpers ---------------------------- */
-  const addColorPreset = () => {
-    setSettings((prev) => ({
-      ...prev,
-      colors: [...prev.colors, { name: "New", hex: "#ffffff" }],
-    }));
-  };
-  const updateColorPreset = (i, key, value) => {
-    setSettings((prev) => {
-      const next = [...prev.colors];
-      next[i] = { ...next[i], [key]: value };
-      return { ...prev, colors: next };
+    tabs.forEach((tab, idx) => {
+      if (tab === "Dashboard") return;
+      const delay = idx * offsetMs;
+      const runNow = () => refreshTab(tab);
+      const start = setTimeout(() => {
+        runNow();
+        const interval = setInterval(runNow, hourMs);
+        refreshTimerRef.current.push(interval);
+      }, delay);
+      refreshTimerRef.current.push(start);
     });
-  };
-  const removeColorPreset = (i) => {
-    setSettings((prev) => {
-      const next = [...prev.colors];
-      next.splice(i, 1);
-      return { ...prev, colors: next };
-    });
-  };
 
-  /* ------------------------------- Color dropdown (portal) ----------------------------- */
-  const openColorMenuAtButton = (tabName, rowIndex, event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    // Position just below the button, left-aligned
-    const x = rect.left;
-    const y = rect.bottom + 6;
-    setColorMenu({ open: true, tab: tabName, index: rowIndex, x, y });
+    return () => refreshTimerRef.current.forEach((t) => clearInterval(t));
+  }, [tabs, data, showSettings]);
+
+  /* ------------------------------- Color menu ------------------------------- */
+  const openColorMenuAtButton = (tab, i, e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setColorMenu({ open: true, tab, index: i, x: rect.left, y: rect.bottom + 6 });
   };
   const closeColorMenu = () => setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
-
-  // Close color menu on click outside / scroll / resize
   useEffect(() => {
     if (!colorMenu.open) return;
-    const onDocClick = (e) => {
-      // If click is inside our menu container, ignore
-      const el = document.getElementById("color-menu-portal");
-      if (el && el.contains(e.target)) return;
-      closeColorMenu();
-    };
-    const onScroll = () => closeColorMenu();
-    const onResize = () => closeColorMenu();
-
-    document.addEventListener("click", onDocClick);
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
+    const close = () => closeColorMenu();
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
     return () => {
-      document.removeEventListener("click", onDocClick);
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
     };
   }, [colorMenu.open]);
-
-  const applyColorToRow = (tabName, i, hex) => {
-    const rows = [...(data[tabName] || [])];
+  const applyColorToRow = (tab, i, hex) => {
+    const rows = [...(data[tab] || [])];
     if (!rows[i]) return;
-    rows[i].colorHex = hex || "";
-    setData({ ...data, [tabName]: rows });
+    rows[i].colorHex = hex;
+    setData({ ...data, [tab]: rows });
     closeColorMenu();
   };
 
-  /* ------------------------------------ UI ------------------------------------ */
-  const dashChangeColor =
-    dashPct == null
-      ? "text-gray-300"
-      : dashPct > 0
-      ? "text-green-400"
-      : dashPct < 0
-      ? "text-red-400"
-      : "text-gray-300";
+  /* ------------------------------- Render UI ------------------------------- */
+  const dashSnap = snapshots["dashboard"];
+  const dashPct =
+    dashSnap && dashSnap.value > 0
+      ? ((grandTotal - dashSnap.value) / dashSnap.value) * 100
+      : null;
 
   return (
     <div className="min-h-screen text-gray-100 font-sans bg-gradient-to-br from-[#050505] to-[#121212]">
-      {/* Header */}
       <header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <h1
-            className="text-xl font-bold"
-            style={{
-              background: "linear-gradient(90deg, #1e40af 0%, #2563eb 60%, #60a5fa 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            💎 CS2 Prices Dashboard
-          </h1>
+          <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
           <div className="flex items-center gap-3">
             <button
               onClick={addTab}
               className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
-              title="Add Tab"
             >
               ＋ Add Tab
             </button>
@@ -528,25 +281,18 @@ const forceFullRefresh = async () => {
               className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition"
               title="Settings"
             >
-              <span aria-hidden>⚙️</span>
+              ⚙️
             </button>
           </div>
-                <button
-  onClick={forceFullRefresh}
-  className="bg-green-800 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
-  title="Force Full Refresh"
->
-  ⟳ Refresh
-</button>
-
         </div>
-        {/* Last updated line (always visible) */}
         <div className="mt-2 text-xs text-neutral-400">
-          {lastUpdatedAt ? `Last updated at ${lastUpdatedAt} WEST` : "Waiting for first auto refresh…"}
+          {lastUpdatedAt
+            ? `Last updated at ${lastUpdatedAt} WEST`
+            : "Waiting for first auto refresh…"}
         </div>
       </header>
 
-      {/* Tabs (hidden while in settings) */}
+      {/* Tabs */}
       {!showSettings && (
         <nav className="flex flex-wrap gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
           {tabs.map((tab) => (
@@ -567,7 +313,6 @@ const forceFullRefresh = async () => {
                     removeTab(tab);
                   }}
                   className="text-xs text-neutral-300 hover:text-red-400"
-                  title="Delete tab"
                 >
                   ✕
                 </button>
@@ -577,114 +322,20 @@ const forceFullRefresh = async () => {
         </nav>
       )}
 
-      {/* Main */}
       <main className="p-6">
-        {showSettings ? (
-          /* ============================== SETTINGS VIEW ============================== */
-          <div className="max-w-4xl mx-auto space-y-8">
-            <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-              <h2 className="text-xl font-semibold mb-4">Rarity Colors</h2>
-
-              <div className="space-y-3">
-                {settings.colors.map((c, idx) => (
-                  <div
-                    key={idx}
-                    className="grid md:grid-cols-[1fr,220px,80px,auto] grid-cols-1 gap-3 items-center bg-neutral-800/50 rounded-lg p-3"
-                  >
-                    <input
-                      value={c.name}
-                      onChange={(e) => updateColorPreset(idx, "name", e.target.value)}
-                      placeholder="Name (e.g., Purple)"
-                      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none"
-                    />
-                    <input
-                      value={c.hex}
-                      onChange={(e) => updateColorPreset(idx, "hex", e.target.value)}
-                      placeholder="#aabbcc"
-                      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none"
-                    />
-                    <div
-                      className="h-8 w-12 rounded border border-neutral-700"
-                      style={{ backgroundColor: c.hex }}
-                      title={c.hex}
-                    />
-                    <button
-                      onClick={() => removeColorPreset(idx)}
-                      className="text-red-400 hover:text-red-500 text-sm"
-                      title="Delete"
-                    >
-                      🗑
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4">
-                <button
-                  onClick={addColorPreset}
-                  className="bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
-                >
-                  ＋ Add Color
-                </button>
-              </div>
-            </section>
-
-            <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-              <h2 className="text-xl font-semibold mb-4">Behavior</h2>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-neutral-800/50 rounded-lg p-3">
-                  <label className="block text-sm text-neutral-400 mb-1">
-                    Snapshot time (WEST, HH:MM)
-                  </label>
-                  <input
-                    type="time"
-                    value={settings.snapshotTimeHHMM}
-                    onChange={(e) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        snapshotTimeHHMM: e.target.value || "19:00",
-                      }))
-                    }
-                    className="w-36 bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none"
-                  />
-                </div>
-
-                <div className="bg-neutral-800/50 rounded-lg p-3">
-                  <label className="block text-sm text-neutral-400 mb-1">
-                    Auto refresh interval (minutes)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={settings.refreshMinutes}
-                    onChange={(e) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        refreshMinutes: Math.max(1, Number(e.target.value)),
-                      }))
-                    }
-                    className="w-36 bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none"
-                  />
-                </div>
-              </div>
-            </section>
-          </div>
-        ) : activeTab === "Dashboard" ? (
-          /* ============================== DASHBOARD VIEW ============================== */
+        {/* Dashboard */}
+        {activeTab === "Dashboard" && !showSettings && (
           <div className="space-y-6">
             <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <div className="text-sm text-neutral-400">Inventory Value</div>
-                  <div className="text-3xl font-extrabold text-blue-300 drop-shadow-sm">
-                    {fmtMoney(grandTotalNum)}€
-                  </div>
+                  <div className="text-3xl font-extrabold text-blue-300">{fmtMoney(grandTotal)}€</div>
                 </div>
                 <div className="text-base font-semibold">
                   {dashPct == null ? (
                     <span className="text-neutral-400">
-                      Daily snapshot will auto-save at {settings.snapshotTimeHHMM} WEST.
+                      Snapshot auto-saves at {settings.snapshotTimeHHMM} WEST
                     </span>
                   ) : (
                     <span
@@ -697,39 +348,125 @@ const forceFullRefresh = async () => {
                       }
                     >
                       {sign(dashPct)}
-                      {isFinite(dashPct) ? Math.abs(dashPct).toFixed(2) : "0.00"}% since last snapshot
+                      {Math.abs(dashPct).toFixed(2)} % since last snapshot
                     </span>
                   )}
-                </div>
-                <div className="text-xs text-neutral-400">
-                  {snapshots["dashboard"]
-                    ? `Last snapshot: ${new Date(snapshots["dashboard"].ts).toLocaleString()} (WEST daily)`
-                    : `No snapshot yet`}
                 </div>
               </div>
             </div>
 
-            {/* Per-tab totals + Grand total */}
             <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 shadow">
-              {tabs
-                .filter((t) => t !== "Dashboard")
-                .map((t) => (
-                  <div
-                    key={t}
-                    className="flex justify-between py-2 border-b border-neutral-800 last:border-0"
-                  >
-                    <span>{t}</span>
-                    <span className="text-green-400">{fmtMoney(totals[t] || 0)}€</span>
-                  </div>
-                ))}
+              {tabs.filter((t) => t !== "Dashboard").map((t) => (
+                <div
+                  key={t}
+                  className="flex justify-between py-2 border-b border-neutral-800 last:border-0"
+                >
+                  <span>{t}</span>
+                  <span className="text-green-400">{fmtMoney(totals[t] || 0)}€</span>
+                </div>
+              ))}
               <div className="flex justify-between mt-4 text-lg font-bold">
                 <span>Total Inventory</span>
-                <span className="text-blue-300">{fmtMoney(grandTotalNum)}€</span>
+                <span className="text-blue-300">{fmtMoney(grandTotal)}€</span>
               </div>
             </div>
           </div>
-        ) : (
-          /* ================================= TAB VIEW ================================ */
+        )}
+
+        {/* Settings */}
+        {showSettings && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+              <h2 className="text-xl font-semibold mb-4">Rarity Colors</h2>
+              <div className="space-y-3">
+                {settings.colors.map((c, idx) => (
+                  <div
+                    key={idx}
+                    className="grid md:grid-cols-[1fr,160px,80px,auto] gap-3 items-center bg-neutral-800/50 rounded-lg p-3"
+                  >
+                    <input
+                      value={c.name}
+                      onChange={(e) =>
+                        setSettings((p) => {
+                          const next = [...p.colors];
+                          next[idx].name = e.target.value;
+                          return { ...p, colors: next };
+                        })
+                      }
+                      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+                    />
+                    <input
+                      value={c.hex}
+                      onChange={(e) =>
+                        setSettings((p) => {
+                          const next = [...p.colors];
+                          next[idx].hex = e.target.value;
+                          return { ...p, colors: next };
+                        })
+                      }
+                      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+                    />
+                    <div className="h-6 w-10 rounded border border-neutral-700" style={{ backgroundColor: c.hex }} />
+                    <button
+                      onClick={() =>
+                        setSettings((p) => {
+                          const next = [...p.colors];
+                          next.splice(idx, 1);
+                          return { ...p, colors: next };
+                        })
+                      }
+                      className="text-red-400 hover:text-red-500 text-sm"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() =>
+                  setSettings((p) => ({
+                    ...p,
+                    colors: [...p.colors, { name: "New", hex: "#ffffff" }],
+                  }))
+                }
+                className="mt-3 bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
+              >
+                ＋ Add Color
+              </button>
+            </section>
+
+            <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+              <h2 className="text-xl font-semibold mb-4">Behavior</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">Snapshot time (WEST)</label>
+                  <input
+                    type="time"
+                    value={settings.snapshotTimeHHMM}
+                    onChange={(e) =>
+                      setSettings({ ...settings, snapshotTimeHHMM: e.target.value })
+                    }
+                    className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">Auto refresh (min)</label>
+                  <input
+                    type="number"
+                    value={settings.refreshMinutes}
+                    onChange={(e) =>
+                      setSettings({ ...settings, refreshMinutes: Number(e.target.value) })
+                    }
+                    className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Tab content */}
+        {!showSettings && activeTab !== "Dashboard" && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-semibold">{activeTab}</h2>
@@ -740,9 +477,8 @@ const forceFullRefresh = async () => {
                 ＋ Add Item
               </button>
             </div>
-
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
+              <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-neutral-800 text-neutral-300">
                     <th className="p-2 text-left">Item</th>
@@ -755,172 +491,105 @@ const forceFullRefresh = async () => {
                 </thead>
                 <tbody>
                   {(data[activeTab] || []).map((row, i) => {
-                    const total = (Number(row.price) || 0) * (Number(row.qty) || 0);
-                    let fluctText = "—";
-                    let fluctClass = "text-neutral-400";
-                    if (row.fluctPct != null) {
-                      if (row.fluctPct > 0) fluctClass = "text-green-400";
-                      else if (row.fluctPct < 0) fluctClass = "text-red-400";
-                      else fluctClass = "text-neutral-300";
-                      fluctText = `${row.fluctPct > 0 ? '+' : ''}${row.fluctPct.toFixed(2)}%`;
-                    }
+                    const total = (row.price || 0) * (row.qty || 0);
+                    const fluct = row.fluctPct ?? 0;
                     const tint = hexToRgba(row.colorHex || "", 0.5);
-
-                    // External link (Steam Market)
-                    const hasName = !!row.name?.trim();
-                    const steamHref = hasName
-                      ? `https://steamcommunity.com/market/listings/730/${encodeURIComponent(
-                          row.name.trim()
-                        )}`
-                      : null;
-
+                    const color =
+                      fluct > 0
+                        ? "text-green-400"
+                        : fluct < 0
+                        ? "text-red-400"
+                        : "text-neutral-400";
                     return (
                       <tr
                         key={i}
-                        className="border-b border-neutral-800 transition-transform duration-150 ease-out hover:-translate-y-[1px] hover:shadow-lg hover:shadow-black/30"
                         style={tint ? { backgroundColor: tint } : {}}
+                        className="border-b border-neutral-800 hover:bg-neutral-800/40 transition"
                       >
                         <td className="p-2">
-  <div className="flex items-center gap-2">
-    {/* Color square */}
-<button
-  type="button"
-  onClick={(e) => {
-    e.stopPropagation(); // prevents table row click interference
-    openColorMenuAtButton(activeTab, i, e);
-  }}
-  className="h-4 w-4 rounded border border-neutral-700 hover:border-blue-400 transition"
-  style={{ backgroundColor: row.colorHex || "transparent" }}
-  title="Set rarity color"
-/>
-
-    {/* Item name input */}
-    <input
-      value={row.name || ""}
-      disabled={!!row.locked}
-      onChange={(e) => {
-        const rows = [...(data[activeTab] || [])];
-        rows[i].name = e.target.value;
-        setData({ ...data, [activeTab]: rows });
-      }}
-      onBlur={() => handleNameBlur(i)}
-      placeholder="Item name (e.g., Snakebite Case)"
-      className={`w-full bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none ${
-        row.locked ? "opacity-60 cursor-not-allowed" : ""
-      }`}
-    />
-
-    {/* Steam market link */}
-    {steamHref ? (
-      <a
-        href={steamHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-neutral-400 hover:text-blue-300 text-sm"
-        title="Open on Steam Market ↗"
-      >
-        ↗
-      </a>
-    ) : (
-      <span
-        className="text-neutral-700 cursor-not-allowed select-none text-sm"
-        title="Enter item name to open Steam link"
-      >
-        ↗
-      </span>
-    )}
-  </div>
-</td>
-
-
-<td className="p-2 text-center">
-  <div className="flex items-center justify-center gap-1">
-    {/* Decrease button */}
-    <button
-      onClick={() => {
-        const rows = [...(data[activeTab] || [])];
-        const newQty = Math.max(0, (rows[i].qty ?? 0) - 1);
-        rows[i].qty = newQty;
-        setData({ ...data, [activeTab]: rows });
-      }}
-      className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 text-sm transition"
-      title="Decrease"
-    >
-      −
-    </button>
-
-    {/* Quantity display / editable input */}
-    <input
-      type="text"
-      inputMode="numeric"
-      value={row.qty ?? 1}
-      onChange={(e) => {
-        if (row.locked) return; // prevent manual change if locked
-        const val = e.target.value.replace(/\D/g, "");
-        const rows = [...(data[activeTab] || [])];
-        rows[i].qty = Number(val);
-        setData({ ...data, [activeTab]: rows });
-      }}
-      className="w-12 text-center bg-neutral-800 text-gray-100 rounded border border-neutral-700 focus:border-blue-600 outline-none select-none"
-      style={{ MozAppearance: "textfield" }}
-    />
-
-    {/* Increase button */}
-    <button
-      onClick={() => {
-        const rows = [...(data[activeTab] || [])];
-        const newQty = (rows[i].qty ?? 0) + 1;
-        rows[i].qty = newQty;
-        setData({ ...data, [activeTab]: rows });
-      }}
-      className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 text-sm transition"
-      title="Increase"
-    >
-      +
-    </button>
-  </div>
-</td>
-
-
-                        <td className="p-2 text-center text-green-400">
-                          {row.price != null ? fmtMoney(row.price) : "—"}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => openColorMenuAtButton(activeTab, i, e)}
+                              className="h-4 w-4 rounded border border-neutral-700"
+                              style={{ backgroundColor: row.colorHex || "transparent" }}
+                              title="Set color"
+                            />
+                            <input
+                              value={row.name || ""}
+                              disabled={row.locked}
+                              onChange={(e) => {
+                                const rows = [...(data[activeTab] || [])];
+                                rows[i].name = e.target.value;
+                                setData({ ...data, [activeTab]: rows });
+                              }}
+                              placeholder="Item name"
+                              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none w-full"
+                            />
+                          </div>
                         </td>
-
-                        <td className={`p-2 text-center font-medium ${fluctClass}`}>{fluctText}</td>
-
-                        <td className="p-2 text-center text-blue-300">{fmtMoney(total)}</td>
-
-                        <td className="p-2">
-                          <div className="relative flex items-center justify-center gap-3">
-                            {/* Lock toggle */}
+                        <td className="p-2 text-center">
+                          <div className="flex items-center justify-center gap-1">
                             <button
-                              onClick={() => toggleLockRow(i)}
-                              className="text-neutral-300 hover:text-blue-300"
-                              title={row.locked ? "Unlock row" : "Lock row"}
+                              onClick={() => {
+                                const rows = [...(data[activeTab] || [])];
+                                rows[i].qty = Math.max(0, (rows[i].qty || 0) - 1);
+                                setData({ ...data, [activeTab]: rows });
+                              }}
+                              className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
                             >
-                              {row.locked ? "🔒" : "🔓"}
+                              −
                             </button>
-
-                            {/* Delete (with confirm) */}
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={row.qty ?? 1}
+                              onChange={(e) => {
+                                if (row.locked) return;
+                                const val = e.target.value.replace(/\D/g, "");
+                                const rows = [...(data[activeTab] || [])];
+                                rows[i].qty = Number(val);
+                                setData({ ...data, [activeTab]: rows });
+                              }}
+                              className="w-12 text-center bg-neutral-800 text-gray-100 rounded border border-neutral-700 focus:border-blue-600 outline-none"
+                            />
                             <button
-                              onClick={() => deleteRow(i)}
-                              className="text-red-400 hover:text-red-500"
-                              title="Delete row"
+                              onClick={() => {
+                                const rows = [...(data[activeTab] || [])];
+                                rows[i].qty = (rows[i].qty || 0) + 1;
+                                setData({ ...data, [activeTab]: rows });
+                              }}
+                              className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
                             >
-                              🗑
+                              +
                             </button>
                           </div>
+                        </td>
+                        <td className="p-2 text-center text-green-400">
+                          {fmtMoney(row.price || 0)}
+                        </td>
+                        <td className={`p-2 text-center ${color}`}>
+                          {sign(fluct)}
+                          {Math.abs(fluct).toFixed(2)} %
+                        </td>
+                        <td className="p-2 text-center text-blue-300">{fmtMoney(total)}</td>
+                        <td className="p-2 text-center">
+                          <button
+                            onClick={() => toggleLockRow(i)}
+                            className="text-neutral-300 hover:text-blue-300"
+                          >
+                            {row.locked ? "🔒" : "🔓"}
+                          </button>
+                          <button
+                            onClick={() => deleteRow(i)}
+                            className="ml-3 text-red-400 hover:text-red-500"
+                          >
+                            🗑
+                          </button>
                         </td>
                       </tr>
                     );
                   })}
-                  {(data[activeTab] || []).length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="p-4 text-center text-neutral-400">
-                        No items yet. Click “＋ Add Item” to start.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
@@ -928,43 +597,35 @@ const forceFullRefresh = async () => {
         )}
       </main>
 
-      {/* Floating Color Menu (Portal-like: fixed to viewport) */}
-{colorMenu.open && (
-  <div
-    id="color-menu-portal"
-    className="fixed z-50"
-    style={{ top: colorMenu.y, left: colorMenu.x }}
-  >
-    <div className="origin-top-left animate-[fadeSlide_.15s_ease-out] bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
-      <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
-      <button
-        onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, "")}
-        className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-      >
-        <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
-        None
-      </button>
-      {settings.colors.map((c) => (
-        <button
-          key={c.name + c.hex}
-          onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, c.hex)}
-          className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
+      {colorMenu.open && (
+        <div
+          id="color-menu-portal"
+          className="fixed z-50"
+          style={{ top: colorMenu.y, left: colorMenu.x }}
         >
-          <span
-            className="h-3 w-3 rounded border border-neutral-600"
-            style={{ backgroundColor: c.hex }}
-          />
-          {c.name}
-        </button>
-      ))}
-    </div>
-  </div>
-)}
-
-
-      {loading && (
-        <div className="fixed bottom-4 right-4 bg-neutral-900/80 px-4 py-2 rounded-lg shadow border border-neutral-700 text-sm text-neutral-300">
-          Updating prices…
+          <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
+            <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+            <button
+              onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, "")}
+              className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
+            >
+              <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
+              None
+            </button>
+            {settings.colors.map((c) => (
+              <button
+                key={c.name + c.hex}
+                onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, c.hex)}
+                className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
+              >
+                <span
+                  className="h-3 w-3 rounded border border-neutral-600"
+                  style={{ backgroundColor: c.hex }}
+                />
+                {c.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
