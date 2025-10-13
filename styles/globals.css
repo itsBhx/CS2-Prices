@@ -1,3 +1,8 @@
+/* Prevent layout shift from scrollbar appearing/disappearing */
+html {
+  overflow-y: scroll;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
