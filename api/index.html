@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>CS2 Prices</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 900px; margin: 24px auto; padding: 0 12px; }
+    h1 { margin: 0 0 12px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    input, textarea, button { font-size: 16px; padding: 8px; }
+    textarea { width: 100%; height: 140px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f7f7f7; }
+    .ok { background: #e9f7ef; }
+    .fail { background: #fff4cc; }
+    .ts { color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>CS2 Prices (EUR)</h1>
+  <div class="row">
+    <div>Paste item names (one per line) — e.g.: <i>Snakebite Case</i></div>
+    <textarea id="names" placeholder="Snakebite Case&#10;Fracture Case"></textarea>
+    <button id="fetchBtn">Fetch Prices</button>
+  </div>
+  <div id="status" class="ts"></div>
+  <table id="tbl">
+    <thead><tr><th>#</th><th>Item</th><th>Lowest</th><th>Median</th><th>Updated</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const apiBase = location.origin + "/api/price";
+
+    function rowHtml(i, name, res) {
+      const cls = (res && res.ok) ? "ok" : "fail";
+      const lowest = (res && res.lowest != null) ? res.lowest : "-";
+      const median = (res && res.median != null) ? res.median : "-";
+      const ts = (res && res.ts) ? new Date(res.ts).toLocaleString() : "-";
+      return `<tr class="${cls}"><td>${i}</td><td>${name}</td><td>${lowest}</td><td>${median}</td><td>${ts}</td></tr>`;
+    }
+
+    async function fetchOne(name) {
+      const url = apiBase + "?name=" + encodeURIComponent(name);
+      try {
+        const r = await fetch(url);
+        return await r.json();
+      } catch {
+        return { ok:false, error:"network" };
+      }
+    }
+
+    document.getElementById("fetchBtn").addEventListener("click", async () => {
+      const lines = document.getElementById("names").value
+        .split("\n").map(s => s.trim()).filter(Boolean);
+      const tbody = document.querySelector("#tbl tbody");
+      tbody.innerHTML = "";
+      document.getElementById("status").textContent = `Fetching ${lines.length} items…`;
+
+      // polite pacing on the client (sequential with tiny delay)
+      let i = 0;
+      for (const name of lines) {
+        i++;
+        const res = await fetchOne(name);
+        tbody.insertAdjacentHTML("beforeend", rowHtml(i, name, res));
+        await new Promise(r => setTimeout(r, 200)); // 0.2s small delay
+      }
+      document.getElementById("status").textContent = `Done. Cached for ~5 min at the edge.`;
+    });
+  </script>
+</body>
+</html>
