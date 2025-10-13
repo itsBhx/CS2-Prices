@@ -319,22 +319,21 @@ useEffect(() => {
 const same = newPrice === oldPrice;
 
 if (!same) {
-  let fluctPct = row.fluctPct ?? null;
-  if (oldPrice > 0) {
-    fluctPct = ((newPrice - oldPrice) / oldPrice) * 100;
-  } else if (row.prevPrice > 0) {
-    fluctPct = ((newPrice - row.prevPrice) / row.prevPrice) * 100;
-  } else {
-    fluctPct = 0; // fallback for first-time price
+  let base = oldPrice > 0 ? oldPrice : row.prevPrice || 0;
+  let fluctPct = 0;
+
+  if (base > 0) {
+    fluctPct = ((newPrice - base) / base) * 100;
   }
 
   updatedRows[i] = {
     ...row,
-    prevPrice: oldPrice > 0 ? oldPrice : newPrice,
+    prevPrice: base > 0 ? base : newPrice,
     price: newPrice,
     fluctPct,
   };
 }
+
         }
       } catch (err) {
         console.warn("Failed to fetch price for", name, err);
@@ -762,7 +761,7 @@ const forceFullRefresh = async () => {
                       if (row.fluctPct > 0) fluctClass = "text-green-400";
                       else if (row.fluctPct < 0) fluctClass = "text-red-400";
                       else fluctClass = "text-neutral-300";
-                      fluctText = `${sign(row.fluctPct)}${Math.abs(row.fluctPct).toFixed(2)}%`;
+                      fluctText = `${row.fluctPct > 0 ? '+' : ''}${row.fluctPct.toFixed(2)}%`;
                     }
                     const tint = hexToRgba(row.colorHex || "", 0.5);
 
