@@ -249,6 +249,7 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [tabs, data, showSettings]);
 
+
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const rect = e.currentTarget.getBoundingClientRect();
