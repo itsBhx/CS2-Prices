@@ -366,6 +366,59 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [tabs, data, showSettings]);
 
+  // Temporary manual refresh button (debug/testing)
+const forceFullRefresh = async () => {
+  setLoading(true);
+  try {
+    for (const tab of tabs) {
+      if (tab === "Dashboard") continue;
+      const rows = data[tab] || [];
+      const updatedRows = [...rows];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const name = row?.name?.trim();
+        if (!name || row.locked) continue;
+
+        try {
+          const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
+          const json = await res.json();
+
+          if (json.ok && json.lowest != null) {
+            const newPrice = Number(json.lowest);
+            const oldPrice = Number(row.price || 0);
+            const same = newPrice === oldPrice;
+
+            if (!same) {
+              const fluctPct =
+                oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : null;
+
+              updatedRows[i] = {
+                ...row,
+                prevPrice: oldPrice > 0 ? oldPrice : newPrice,
+                price: newPrice,
+                fluctPct,
+              };
+            }
+          }
+        } catch (err) {
+          console.warn("Manual refresh failed for", name, err);
+        }
+
+        // wait a little between requests
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 2750));
+      }
+
+      // save updates for tab
+      setData((prev) => ({ ...prev, [tab]: updatedRows }));
+    }
+    setLastUpdatedAt(formatLisbonHM());
+  } finally {
+    setLoading(false);
+  }
+};
+
   /* ------------------------------ Settings helpers ---------------------------- */
   const addColorPreset = () => {
     setSettings((prev) => ({
@@ -472,6 +525,14 @@ useEffect(() => {
               <span aria-hidden>⚙️</span>
             </button>
           </div>
+                <button
+  onClick={forceFullRefresh}
+  className="bg-green-800 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
+  title="Force Full Refresh"
+>
+  ⟳ Refresh
+</button>
+
         </div>
         {/* Last updated line (always visible) */}
         <div className="mt-2 text-xs text-neutral-400">
