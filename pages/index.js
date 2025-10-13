@@ -21,7 +21,7 @@ function todayKeyLisbon(date = new Date()) {
   }).format(date); // YYYY-MM-DD
 }
 
-function lisbonNowComponents() {
+function lisbonNowParts() {
   const d = new Date();
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: LISBON_TZ,
@@ -37,7 +37,7 @@ function lisbonNowComponents() {
 }
 
 function hasPassedLisbonHHMM(targetHHMM = "19:00") {
-  const { year, month, day, hour, minute } = lisbonNowComponents();
+  const { hour, minute } = lisbonNowParts();
   const [th, tm] = targetHHMM.split(":").map((x) => Number(x));
   if (hour > th) return true;
   if (hour < th) return false;
@@ -86,7 +86,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null); // "HH:MM"
 
-  const [openColorMenu, setOpenColorMenu] = useState({ tab: null, index: null }); // which row shows color dropdown
+  // Floating color menu state (portal)
+  const [colorMenu, setColorMenu] = useState({
+    open: false,
+    tab: null,
+    index: null,
+    x: 0,
+    y: 0,
+  });
 
   const refreshTimerRef = useRef(null);
 
@@ -339,9 +346,37 @@ export default function Home() {
     });
   };
 
-  /* ------------------------------- Color dropdown ----------------------------- */
-  const openColorFor = (tabName, i) => setOpenColorMenu({ tab: tabName, index: i });
-  const closeColorMenu = () => setOpenColorMenu({ tab: null, index: null });
+  /* ------------------------------- Color dropdown (portal) ----------------------------- */
+  const openColorMenuAtButton = (tabName, rowIndex, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    // Position just below the button, left-aligned
+    const x = rect.left;
+    const y = rect.bottom + 6;
+    setColorMenu({ open: true, tab: tabName, index: rowIndex, x, y });
+  };
+  const closeColorMenu = () => setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
+
+  // Close color menu on click outside / scroll / resize
+  useEffect(() => {
+    if (!colorMenu.open) return;
+    const onDocClick = (e) => {
+      // If click is inside our menu container, ignore
+      const el = document.getElementById("color-menu-portal");
+      if (el && el.contains(e.target)) return;
+      closeColorMenu();
+    };
+    const onScroll = () => closeColorMenu();
+    const onResize = () => closeColorMenu();
+
+    document.addEventListener("click", onDocClick);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.removeEventListener("click", onDocClick);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [colorMenu.open]);
 
   const applyColorToRow = (tabName, i, hex) => {
     const rows = [...(data[tabName] || [])];
@@ -622,7 +657,13 @@ export default function Home() {
                     }
                     const tint = hexToRgba(row.colorHex || "", 0.5);
 
-                    const isMenuOpen = openColorMenu.tab === activeTab && openColorMenu.index === i;
+                    // External link (Steam Market)
+                    const hasName = !!row.name?.trim();
+                    const steamHref = hasName
+                      ? `https://steamcommunity.com/market/listings/730/${encodeURIComponent(
+                          row.name.trim()
+                        )}`
+                      : null;
 
                     return (
                       <tr
@@ -631,21 +672,42 @@ export default function Home() {
                         style={tint ? { backgroundColor: tint } : {}}
                       >
                         <td className="p-2">
-                          <input
-                            value={row.name || ""}
-                            disabled={!!row.locked}
-                            onChange={(e) => {
-                              const rows = [...(data[activeTab] || [])];
-                              rows[i].name = e.target.value;
-                              setData({ ...data, [activeTab]: rows });
-                            }}
-                            onBlur={() => handleNameBlur(i)}
-                            placeholder="Item name (e.g., Snakebite Case)"
-                            className={`w-full bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none ${
-                              row.locked ? "opacity-60 cursor-not-allowed" : ""
-                            }`}
-                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              value={row.name || ""}
+                              disabled={!!row.locked}
+                              onChange={(e) => {
+                                const rows = [...(data[activeTab] || [])];
+                                rows[i].name = e.target.value;
+                                setData({ ...data, [activeTab]: rows });
+                              }}
+                              onBlur={() => handleNameBlur(i)}
+                              placeholder="Item name (e.g., Snakebite Case)"
+                              className={`w-full bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none ${
+                                row.locked ? "opacity-60 cursor-not-allowed" : ""
+                              }`}
+                            />
+                            {steamHref ? (
+                              <a
+                                href={steamHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-neutral-400 hover:text-blue-300 text-sm"
+                                title="Open on Steam Market ↗"
+                              >
+                                ↗
+                              </a>
+                            ) : (
+                              <span
+                                className="text-neutral-700 cursor-not-allowed select-none text-sm"
+                                title="Enter item name to open Steam link"
+                              >
+                                ↗
+                              </span>
+                            )}
+                          </div>
                         </td>
+
                         <td className="p-2 text-center">
                           <input
                             type="number"
@@ -662,18 +724,20 @@ export default function Home() {
                             }`}
                           />
                         </td>
+
                         <td className="p-2 text-center text-green-400">
                           {row.price != null ? fmtMoney(row.price) : "—"}
                         </td>
+
                         <td className={`p-2 text-center font-medium ${fluctClass}`}>{fluctText}</td>
+
                         <td className="p-2 text-center text-blue-300">{fmtMoney(total)}</td>
+
                         <td className="p-2">
                           <div className="relative flex items-center justify-center gap-3">
-                            {/* Color menu toggle */}
+                            {/* Color menu toggle (opens floating portal) */}
                             <button
-                              onClick={() =>
-                                isMenuOpen ? closeColorMenu() : openColorFor(activeTab, i)
-                              }
+                              onClick={(e) => openColorMenuAtButton(activeTab, i, e)}
                               className="text-neutral-300 hover:text-blue-300"
                               title="Set rarity color"
                             >
@@ -697,35 +761,6 @@ export default function Home() {
                             >
                               🗑
                             </button>
-
-                            {/* Simple dropdown with presets */}
-                            {isMenuOpen && (
-                              <div className="absolute top-7 right-0 z-20 bg-neutral-900 border border-neutral-700 rounded-md shadow-md p-2 min-w-[160px]">
-                                <div className="text-xs text-neutral-400 px-1 pb-1">
-                                  Choose color
-                                </div>
-                                <button
-                                  onClick={() => applyColorToRow(activeTab, i, "")}
-                                  className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-                                >
-                                  <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
-                                  None
-                                </button>
-                                {settings.colors.map((c) => (
-                                  <button
-                                    key={c.name + c.hex}
-                                    onClick={() => applyColorToRow(activeTab, i, c.hex)}
-                                    className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-                                  >
-                                    <span
-                                      className="h-3 w-3 rounded border border-neutral-600"
-                                      style={{ backgroundColor: c.hex }}
-                                    />
-                                    {c.name}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -744,6 +779,45 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Floating Color Menu (Portal-like: fixed to viewport) */}
+      {colorMenu.open && (
+        <div
+          id="color-menu-portal"
+          className="fixed z-50"
+          style={{ top: colorMenu.y, left: colorMenu.x }}
+        >
+          <div
+            className="origin-top-left animate-[fadeSlide_.15s_ease-out] bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]"
+            style={{
+              // simple keyframes without CSS file
+              animationName: undefined,
+            }}
+          >
+            <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+            <button
+              onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, "")}
+              className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
+            >
+              <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
+              None
+            </button>
+            {settings.colors.map((c) => (
+              <button
+                key={c.name + c.hex}
+                onClick={() => applyColorToRow(colorMenu.tab, colorMenu.index, c.hex)}
+                className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
+              >
+                <span
+                  className="h-3 w-3 rounded border border-neutral-600"
+                  style={{ backgroundColor: c.hex }}
+                />
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="fixed bottom-4 right-4 bg-neutral-900/80 px-4 py-2 rounded-lg shadow border border-neutral-700 text-sm text-neutral-300">
