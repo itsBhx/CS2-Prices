@@ -724,22 +724,54 @@ export default function Home() {
 </td>
 
 
-                        <td className="p-2 text-center">
-                          <input
-                            type="number"
-                            min={0}
-                            value={row.qty ?? 1}
-                            disabled={!!row.locked}
-                            onChange={(e) => {
-                              const rows = [...(data[activeTab] || [])];
-                              rows[i].qty = Number(e.target.value);
-                              setData({ ...data, [activeTab]: rows });
-                            }}
-                            className={`w-16 bg-neutral-800 text-center rounded border border-neutral-700 focus:border-blue-600 outline-none ${
-                              row.locked ? "opacity-60 cursor-not-allowed" : ""
-                            }`}
-                          />
-                        </td>
+<td className="p-2 text-center">
+  <div className="flex items-center justify-center gap-1">
+    {/* Decrease button */}
+    <button
+      onClick={() => {
+        const rows = [...(data[activeTab] || [])];
+        const newQty = Math.max(0, (rows[i].qty ?? 0) - 1);
+        rows[i].qty = newQty;
+        setData({ ...data, [activeTab]: rows });
+      }}
+      className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 text-sm transition"
+      title="Decrease"
+    >
+      −
+    </button>
+
+    {/* Quantity display / editable input */}
+    <input
+      type="text"
+      inputMode="numeric"
+      value={row.qty ?? 1}
+      onChange={(e) => {
+        if (row.locked) return; // prevent manual change if locked
+        const val = e.target.value.replace(/\D/g, "");
+        const rows = [...(data[activeTab] || [])];
+        rows[i].qty = Number(val);
+        setData({ ...data, [activeTab]: rows });
+      }}
+      className="w-12 text-center bg-neutral-800 text-gray-100 rounded border border-neutral-700 focus:border-blue-600 outline-none select-none"
+      style={{ MozAppearance: "textfield" }}
+    />
+
+    {/* Increase button */}
+    <button
+      onClick={() => {
+        const rows = [...(data[activeTab] || [])];
+        const newQty = (rows[i].qty ?? 0) + 1;
+        rows[i].qty = newQty;
+        setData({ ...data, [activeTab]: rows });
+      }}
+      className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 text-sm transition"
+      title="Increase"
+    >
+      +
+    </button>
+  </div>
+</td>
+
 
                         <td className="p-2 text-center text-green-400">
                           {row.price != null ? fmtMoney(row.price) : "—"}
