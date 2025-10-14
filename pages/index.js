@@ -142,52 +142,56 @@ const toggleFolder = (folderName) =>
     )
   );
 
-// Remove a tab or a folder (safe delete)
-const removeTabOrFolder = (target) => {
-  if (typeof target === "string") {
-    removeTab(target);
-    return;
-  }
+/* ------------------------------ Remove functions ------------------------------ */
 
-// Remove a sub-tab inside a folder (and its data)
+// ✅ Remove a sub-tab inside a folder (and its data)
 const removeSubTab = (folderName, subName) => {
   if (!confirm(`Delete tab "${subName}" from "${folderName}"?`)) return;
 
   setTabs((prev) =>
     prev.map((t) => {
       if (typeof t === "object" && t.folder === folderName) {
-        // remove only that sub-tab name from the folder’s list
-        return { ...t, tabs: t.tabs.filter((name) => name !== subName) };
+        // filter out the deleted sub-tab name
+        return { ...t, tabs: t.tabs.filter((n) => n !== subName) };
       }
       return t;
     })
   );
 
-  // also remove its data
+  // also remove its stored data
   setData((prev) => {
     const next = { ...prev };
     delete next[subName];
     return next;
   });
 
-  // if we were on that tab, go back to Dashboard
+  // return to Dashboard if we were viewing that tab
   setActiveTab((curr) => (curr === subName ? "Dashboard" : curr));
 
   console.log(`🗑 Deleted sub-tab "${subName}" from folder "${folderName}"`);
 };
 
-  // Prevent deleting folder with tabs inside
+// ✅ Remove a tab or a folder (safe delete)
+const removeTabOrFolder = (target) => {
+  if (typeof target === "string") {
+    removeTab(target);
+    return;
+  }
+
+  // Prevent deleting folder that still has sub-tabs
   if (target.tabs && target.tabs.length > 0) {
     alert(
-      `⚠️ You must delete or move all tabs inside "${target.folder}" before deleting the folder.`
+      `⚠️ You must delete or move all tabs inside "${target.folder}" before deleting this folder.`
     );
     return;
   }
 
+  // confirm removal of empty folder
   if (!confirm(`Delete empty folder "${target.folder}"?`)) return;
 
-  // Safe to delete
-  setTabs((prev) => prev.filter((t) => t !== target));
+  // safe delete
+  setTabs((prev) => prev.filter((t) => t.folder !== target.folder));
+  console.log(`🗑 Deleted empty folder "${target.folder}"`);
 };
 
   const addRow = () => {
@@ -646,9 +650,9 @@ useEffect(() => {
 <button
   onClick={(e) => {
     e.stopPropagation();
-    removeSubTab(t.folder, sub);
+    removeSubTab(t.folder, sub);  // ✅ correct call
   }}
-  className="ml-2 text-xs text-neutral-400 hover:text-red-400"
+  className="ml-2 text-xs text-neutral-400 hover:text-red-400 transition hover:scale-110"
 >
   ✕
 </button>
