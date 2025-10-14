@@ -149,29 +149,31 @@ const removeTabOrFolder = (target) => {
     return;
   }
 
-  // Remove a sub-tab inside a folder (and its data)
+// Remove a sub-tab inside a folder (and its data)
 const removeSubTab = (folderName, subName) => {
   if (!confirm(`Delete tab "${subName}" from "${folderName}"?`)) return;
 
-  // remove from folder.t.tabs
-  setTabs(prev =>
-    prev.map(t => {
+  setTabs((prev) =>
+    prev.map((t) => {
       if (typeof t === "object" && t.folder === folderName) {
-        return { ...t, tabs: t.tabs.filter(n => n !== subName) };
+        // remove only that sub-tab name from the folder’s list
+        return { ...t, tabs: t.tabs.filter((name) => name !== subName) };
       }
       return t;
     })
   );
 
-  // remove its data
-  setData(prev => {
+  // also remove its data
+  setData((prev) => {
     const next = { ...prev };
     delete next[subName];
     return next;
   });
 
-  // if the deleted subTab was active, bounce to Dashboard
-  setActiveTab(curr => (curr === subName ? "Dashboard" : curr));
+  // if we were on that tab, go back to Dashboard
+  setActiveTab((curr) => (curr === subName ? "Dashboard" : curr));
+
+  console.log(`🗑 Deleted sub-tab "${subName}" from folder "${folderName}"`);
 };
 
   // Prevent deleting folder with tabs inside
@@ -644,7 +646,7 @@ useEffect(() => {
 <button
   onClick={(e) => {
     e.stopPropagation();
-    removeSubTab(t.folder, sub);  // ✅ this is the correct new function
+    removeSubTab(t.folder, sub);
   }}
   className="ml-2 text-xs text-neutral-400 hover:text-red-400"
 >
