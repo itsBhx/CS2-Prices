@@ -792,10 +792,10 @@ useEffect(() => {
 
                   {/* Dropdown items */}
                   {t.open && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute top-full left-0 mt-1 min-w-[220px] bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20"
-                    >
+<div
+  onClick={(e) => e.stopPropagation()}
+  className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 w-fit max-w-[90vw]"
+>
                       <div className="flex flex-col py-1">
                         {(t.tabs || []).map((sub, i) => {
                           const subName = getTabName(sub);
