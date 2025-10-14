@@ -686,7 +686,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                           }}
                           className="text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
                         >
-                          <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
+                          <img src="/trash.svg" alt="Delete" className="w-4 h-4" /> Delete Folder
                         </button>
                       </div>
                     </div>
