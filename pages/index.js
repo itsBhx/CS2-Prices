@@ -475,24 +475,15 @@ const applyColorToRow = (tab, i, hex) => {
   </div>
 </header>
 
-{/* Header Navigation (Categories + Tabs dropdowns) */}
+{/* Header Navigation (Categories dropdowns only) */}
 {!showSettings && (
   <div className="flex flex-wrap items-center justify-center gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
-    {/* Dashboard button */}
-    <button
-      onClick={() => {
-        setActiveCategory(null);
-        setActiveTab("Dashboard");
-        setShowSettings(false);
-      }}
-      className={`px-4 py-1.5 rounded-lg font-semibold transition ${
-        activeTab === "Dashboard"
-          ? "bg-blue-700 text-white"
-          : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
-      }`}
-    >
-      💎 Dashboard
-    </button>
+    {/* Empty state */}
+    {Object.keys(categories).length === 0 && (
+      <div className="text-neutral-500 text-sm italic py-1">
+        No categories yet — click “＋ Add Category” above to get started.
+      </div>
+    )}
 
     {/* Categories */}
     {Object.keys(categories).map((cat) => (
@@ -519,7 +510,7 @@ const applyColorToRow = (tab, i, hex) => {
                 className="flex justify-between items-center px-3 py-2 hover:bg-neutral-800 cursor-pointer"
                 onClick={() => {
                   openTab(cat, tab);
-                  setActiveCategory(null); // close dropdown
+                  setActiveCategory(null);
                 }}
               >
                 <span>{tab}</span>
@@ -550,29 +541,8 @@ const applyColorToRow = (tab, i, hex) => {
         )}
       </div>
     ))}
-
-    {/* Add Category button */}
-    <button
-      onClick={addCategory}
-      className="bg-blue-700 hover:bg-blue-600 px-3 py-1.5 rounded-lg text-sm font-semibold transition"
-    >
-      ＋ Add Category
-    </button>
-
-    {/* Settings */}
-    <button
-      onClick={() => setShowSettings((v) => !v)}
-      className={`ml-2 text-xl ${
-        showSettings
-          ? "text-blue-400"
-          : "text-gray-400 hover:text-gray-200"
-      }`}
-    >
-      ⚙️
-    </button>
   </div>
 )}
-
 
       <main className="p-6">
         {/* Dashboard */}
