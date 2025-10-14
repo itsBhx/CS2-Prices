@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-/* ======================= Time (Lisbon / WEST) helpers ======================= */
+/* ====================== Time (Lisbon / WEST) helpers ====================== */
 const LISBON_TZ = "Europe/Lisbon";
 function formatLisbonHM(date = new Date()) {
   return new Intl.DateTimeFormat("en-GB", {
