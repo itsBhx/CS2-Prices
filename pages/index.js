@@ -27,6 +27,7 @@ function hasPassedLisbonHHMM(targetHHMM = "19:00") {
 
 /* ============================= UI helpers ============================= */
 const fmtMoney = (n) => (isFinite(n) ? Number(n).toFixed(2) : "0.00");
+const sign = (n) => (n > 0 ? "+" : "");
 function hexToRgba(hex, alpha = 0.5) {
   if (!hex) return null;
   let h = hex.replace("#", "").trim();
@@ -53,58 +54,52 @@ const DEFAULT_SETTINGS = {
 
 /* ================================== App ==================================== */
 export default function Home() {
-  // New model
-  const [categories, setCategories] = useState({});
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [activeTab, setActiveTab] = useState("Dashboard");
-
-  // UI / settings
+  const [tabs, setTabs] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [data, setData] = useState({});
+  const [totals, setTotals] = useState({});
   const [snapshots, setSnapshots] = useState({});
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
-
-  // Color menu
-  const [colorMenu, setColorMenu] = useState({
-    open: false,
-    tab: null,
-    cat: null,
-    index: null,
-    x: 0,
-    y: 0,
-  });
-
-  const refreshLoopRef = useRef({ running: false });
+  const [colorMenu, setColorMenu] = useState({ open: false, tab: null, index: null, x: 0, y: 0 });
+  const refreshTimerRef = useRef([]);
 
   /* --------------------------- Load / Save localStorage --------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const savedCats = JSON.parse(localStorage.getItem("cs2-categories") || "{}");
-    setCategories(savedCats);
-    setSettings(JSON.parse(localStorage.getItem("cs2-settings") || "null") || DEFAULT_SETTINGS);
-    setSnapshots(JSON.parse(localStorage.getItem("cs2-snapshots") || "{}"));
+    setTabs(JSON.parse(localStorage.getItem("cs2-tabs")) || ["Dashboard"]);
+    setData(JSON.parse(localStorage.getItem("cs2-data")) || {});
+    setSnapshots(JSON.parse(localStorage.getItem("cs2-snapshots")) || {});
+    setSettings(JSON.parse(localStorage.getItem("cs2-settings")) || DEFAULT_SETTINGS);
     setLastUpdatedAt(localStorage.getItem("cs2-lastUpdatedAt") || null);
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("cs2-categories", JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    localStorage.setItem("cs2-settings", JSON.stringify(settings));
-  }, [settings]);
-
+  useEffect(() => { localStorage.setItem("cs2-tabs", JSON.stringify(tabs)); }, [tabs]);
+  useEffect(() => { localStorage.setItem("cs2-data", JSON.stringify(data)); }, [data]);
+  useEffect(() => { localStorage.setItem("cs2-snapshots", JSON.stringify(snapshots)); }, [snapshots]);
+  useEffect(() => { localStorage.setItem("cs2-settings", JSON.stringify(settings)); }, [settings]);
   useEffect(() => {
     if (lastUpdatedAt) localStorage.setItem("cs2-lastUpdatedAt", lastUpdatedAt);
   }, [lastUpdatedAt]);
 
   /* ------------------------------- Categories & Tabs ------------------------------- */
+  const [categories, setCategories] = useState({});
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeTab, setActiveTab] = useState("Dashboard");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = JSON.parse(localStorage.getItem("cs2-categories") || "{}");
+    setCategories(saved);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("cs2-categories", JSON.stringify(categories));
+  }, [categories]);
+
   const addCategory = () => {
     const name = prompt("New category name:");
     if (!name || categories[name]) return;
     setCategories({ ...categories, [name]: {} });
   };
-
   const removeCategory = (name) => {
     const hasTabs = Object.keys(categories[name] || {}).length > 0;
     if (hasTabs) {
@@ -117,34 +112,28 @@ export default function Home() {
     setCategories(next);
     if (activeCategory === name) setActiveCategory(null);
   };
-
   const addTabToCategory = (cat) => {
     const tabName = prompt(`New tab inside "${cat}":`);
-    if (!tabName || categories[cat]?.[tabName]) return;
+    if (!tabName || categories[cat][tabName]) return;
     const next = { ...categories };
-    if (!next[cat]) next[cat] = {};
     next[cat][tabName] = [];
     setCategories(next);
     setActiveCategory(cat);
     setActiveTab(tabName);
-    setShowSettings(false);
   };
-
   const removeTabFromCategory = (cat, tab) => {
     if (!confirm(`Delete tab "${tab}" from "${cat}"?`)) return;
     const next = { ...categories };
     delete next[cat][tab];
     setCategories(next);
-    if (activeCategory === cat && activeTab === tab) setActiveTab("Dashboard");
+    if (activeTab === tab) setActiveTab("Dashboard");
   };
-
   const openTab = (cat, tab) => {
     setActiveCategory(cat);
     setActiveTab(tab);
     setShowSettings(false);
   };
 
-  // Add item row inside the current active category + tab
   const addRow = () => {
     if (!activeCategory || !activeTab || activeTab === "Dashboard") return;
     const next = { ...categories };
@@ -152,178 +141,35 @@ export default function Home() {
     rows.push({ name: "", qty: 1, price: 0, colorHex: "", locked: false });
     next[activeCategory][activeTab] = rows;
     setCategories(next);
+    localStorage.setItem("cs2-categories", JSON.stringify(next));
   };
 
-  const deleteRow = (i) => {
-    if (!activeCategory || !activeTab || activeTab === "Dashboard") return;
-    if (!confirm("Delete this row?")) return;
-    const next = { ...categories };
-    const rows = [...(next[activeCategory][activeTab] || [])];
-    rows.splice(i, 1);
-    next[activeCategory][activeTab] = rows;
-    setCategories(next);
-  };
-
-  const toggleLockRow = (i) => {
-    if (!activeCategory || !activeTab || activeTab === "Dashboard") return;
-    const next = { ...categories };
-    const rows = [...(next[activeCategory][activeTab] || [])];
-    if (!rows[i]) return;
-    rows[i].locked = !rows[i].locked;
-    next[activeCategory][activeTab] = rows;
-    setCategories(next);
-  };
-
-  /* ----------------------------- Totals per tab (from categories) ----------------------------- */
-  const totalsPerTab = useMemo(() => {
-    const res = {};
-    for (const cat of Object.keys(categories)) {
-      for (const tab of Object.keys(categories[cat] || {})) {
-        const key = `${cat} ▸ ${tab}`;
-        const rows = categories[cat][tab] || [];
-        res[key] = rows.reduce((sum, r) => sum + Number(r.qty || 0) * Number(r.price || 0), 0);
-      }
-    }
-    return res;
-  }, [categories]);
-
-  const grandTotal = useMemo(
-    () => Object.values(totalsPerTab).reduce((a, b) => a + b, 0),
-    [totalsPerTab]
-  );
-
-  /* -------------------------- Daily snapshots -------------------------- */
+  /* Close dropdowns when clicking outside */
   useEffect(() => {
-    const key = todayKeyLisbon();
-    if (!hasPassedLisbonHHMM(settings.snapshotTimeHHMM)) return;
-    if (snapshots["dashboard"]?.dateKey === key) return;
+    const closeAll = () => setActiveCategory(null);
+    document.body.addEventListener("click", closeAll);
+    return () => document.body.removeEventListener("click", closeAll);
+  }, []);
 
-    const newSnaps = { ...snapshots };
-    newSnaps["dashboard"] = { value: grandTotal, dateKey: key, ts: Date.now() };
-
-    for (const cat of Object.keys(categories)) {
-      for (const tab of Object.keys(categories[cat] || {})) {
-        const label = `${cat} ▸ ${tab}`;
-        newSnaps[label] = { value: totalsPerTab[label] || 0, dateKey: key, ts: Date.now() };
-      }
-    }
-    setSnapshots(newSnaps);
-    localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
-  }, [grandTotal, totalsPerTab, categories, snapshots, settings.snapshotTimeHHMM]);
-
-  /* -------------------------- Auto refresh system (categories-aware) -------------------------- */
+  /* ----------------------------- Totals per tab ----------------------------- */
   useEffect(() => {
-    if (refreshLoopRef.current.running) {
-      console.log("⚙️ Refresh loop already running, skipping new instance");
-      return;
+    const t = {};
+    for (const tab of tabs) {
+      if (!data[tab]) continue;
+      t[tab] = data[tab].reduce((sum, r) => sum + (Number(r.qty || 0) * Number(r.price || 0)), 0);
     }
-    refreshLoopRef.current.running = true;
-
-    let stop = false;
-    const spacingMs = 3000;
-    const intervalMin = settings.refreshMinutes || 30;
-    const intervalMs = intervalMin * 60 * 1000;
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-    const run = async () => {
-      while (!stop) {
-        const lastRun = Number(localStorage.getItem("cs2-lastFullRefreshAt") || 0);
-        const sinceLast = Date.now() - lastRun;
-
-        if (sinceLast < intervalMs) {
-          const waitMin = ((intervalMs - sinceLast) / 60000).toFixed(1);
-          console.log(`⏸ Skipping refresh — ${waitMin} min until next cycle`);
-          await sleep(60000);
-          continue;
-        }
-
-        console.log(`🔄 Starting full refresh cycle (${intervalMin} min interval)`);
-
-        // snapshot current categories from localStorage to avoid stale closures
-        const liveCats = JSON.parse(localStorage.getItem("cs2-categories") || "{}");
-
-        for (const cat of Object.keys(liveCats)) {
-          for (const tab of Object.keys(liveCats[cat] || {})) {
-            const rows = liveCats[cat][tab] || [];
-            if (!rows.length) continue;
-
-            console.log(`▶ Fetching tab: ${cat} ▸ ${tab}`);
-            const updatedRows = [...rows];
-
-            for (let i = 0; i < rows.length; i++) {
-              if (stop) return;
-              const row = rows[i];
-              const name = row?.name?.trim();
-              if (!name) continue; // locked items still update price if name exists
-
-              try {
-                const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
-                const json = await res.json();
-
-                if (json.ok && json.lowest != null) {
-                  const newPrice = Number(json.lowest);
-                  const oldPrice = Number(row.price || 0);
-                  const base = row.prevPrice || oldPrice || newPrice;
-
-                  let fluctPct = 0;
-                  if (base > 0) {
-                    fluctPct = ((newPrice - base) / base) * 100;
-                    if (fluctPct > 300) fluctPct = 300;
-                    if (fluctPct < -300) fluctPct = -300;
-                  }
-
-                  updatedRows[i] = {
-                    ...row,
-                    prevPrice: base > 0 ? base : newPrice,
-                    price: newPrice,
-                    fluctPct,
-                  };
-                }
-              } catch (err) {
-                console.warn("❌ Failed to fetch", name, err);
-              }
-
-              // eslint-disable-next-line no-await-in-loop
-              await sleep(spacingMs);
-            }
-
-            // write back to both React state and localStorage
-            setCategories((prev) => {
-              const next = { ...prev };
-              if (!next[cat]) next[cat] = {};
-              next[cat][tab] = updatedRows;
-              localStorage.setItem("cs2-categories", JSON.stringify(next));
-              return next;
-            });
-
-            console.log(`✅ Finished tab: ${cat} ▸ ${tab}`);
-          }
-        }
-
-        setLastUpdatedAt(formatLisbonHM());
-        localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
-        console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
-        await sleep(intervalMs);
-      }
-    };
-
-    run();
-    return () => {
-      stop = true;
-      refreshLoopRef.current.running = false;
-    };
-  }, [settings.refreshMinutes]);
+    setTotals(t);
+  }, [data, tabs]);
+  const grandTotal = useMemo(() => Object.values(totals).reduce((a, b) => a + b, 0), [totals]);
 
   /* -------------------------- Behavior Settings Component -------------------------- */
   function BehaviorSettings({ settings, setSettings }) {
     const [pendingSettings, setPendingSettings] = useState(settings);
     useEffect(() => setPendingSettings(settings), [settings]);
-
     const handleSave = () => {
       setSettings(pendingSettings);
       console.log("✅ Settings saved:", pendingSettings);
     };
-
     return (
       <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
         <h2 className="text-xl font-semibold mb-4">Behavior</h2>
@@ -348,7 +194,10 @@ export default function Home() {
           </div>
         </div>
         <div className="flex justify-end mt-6">
-          <button onClick={handleSave} className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition">
+          <button
+            onClick={handleSave}
+            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+          >
             💾 Save Changes
           </button>
         </div>
@@ -356,73 +205,17 @@ export default function Home() {
     );
   }
 
-  /* ------------------------------- Color menu ------------------------------- */
-  const openColorMenuAtButton = (cat, tab, i, e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const menuHeight = 200;
-    const viewportHeight = window.innerHeight;
-    const openAbove = rect.bottom + menuHeight > viewportHeight;
-    const y = openAbove ? rect.top - menuHeight - 6 : rect.bottom + 6;
-
-    setColorMenu({ open: true, cat, tab, index: i, x: rect.left, y });
-  };
-
-  const closeColorMenu = () =>
-    setColorMenu({ open: false, tab: null, cat: null, index: null, x: 0, y: 0 });
-
-  useEffect(() => {
-    if (!colorMenu.open) return;
-    const onBodyClick = (e) => {
-      const menuEl = document.getElementById("color-menu-portal");
-      if (!menuEl) return;
-      if (menuEl.contains(e.target)) return;
-      closeColorMenu();
-    };
-    const onScroll = () => closeColorMenu();
-    const onResize = () => closeColorMenu();
-    const t = setTimeout(() => {
-      document.body.addEventListener("click", onBodyClick);
-      window.addEventListener("scroll", onScroll, true);
-      window.addEventListener("resize", onResize);
-    }, 50);
-    return () => {
-      clearTimeout(t);
-      document.body.removeEventListener("click", onBodyClick);
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [colorMenu.open]);
-
-  const applyColorToRow = (cat, tab, i, hex) => {
-    const next = { ...categories };
-    const rows = [...(next[cat]?.[tab] || [])];
-    if (!rows[i]) return;
-    rows[i].colorHex = hex;
-    next[cat][tab] = rows;
-    setCategories(next);
-    closeColorMenu();
-  };
-
-  /* ------------------------------- Render UI ------------------------------- */
-  const dashSnap = snapshots["dashboard"];
-  const dashPct =
-    dashSnap && dashSnap.value > 0 ? ((grandTotal - dashSnap.value) / dashSnap.value) * 100 : null;
-
-  const activeRows = activeTab === "Dashboard" ? [] : (categories[activeCategory]?.[activeTab] || []);
-
+  /* ------------------------------- Render ------------------------------- */
   return (
     <div className="min-h-screen text-gray-100 font-sans bg-gradient-to-br from-[#050505] to-[#121212]">
       <header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
         <div className="grid grid-cols-3 items-center">
-          {/* LEFT */}
           <div className="justify-self-start">
             <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
             <div className="mt-1 text-xs text-neutral-400">
               {lastUpdatedAt ? `Last updated at ${lastUpdatedAt} WEST` : "Waiting for first auto refresh…"}
             </div>
           </div>
-
-          {/* CENTER */}
           <div className="justify-self-center">
             <button
               onClick={() => {
@@ -435,12 +228,9 @@ export default function Home() {
                   : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(59,130,246,0.3)]"
               }`}
             >
-              <span className="relative z-10">Dashboard</span>
-              {activeTab === "Dashboard" && <span className="absolute inset-0 rounded-full bg-blue-600/20 blur-xl animate-pulse" />}
+              Dashboard
             </button>
           </div>
-
-          {/* RIGHT */}
           <div className="justify-self-end flex items-center gap-3">
             <button
               onClick={addCategory}
@@ -463,7 +253,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Categories nav */}
+      {/* Category dropdowns */}
       {!showSettings && (
         <div className="flex flex-wrap items-center justify-center gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
           {Object.keys(categories).length === 0 && (
@@ -475,27 +265,24 @@ export default function Home() {
           {Object.keys(categories).map((cat) => (
             <div key={cat} className="relative">
               <button
-                onClick={() => {
-  // Only toggle dropdown open/close visually,
-  // but never clear activeCategory if a tab under it is open
-  setActiveCategory((prev) => {
-    if (prev === cat) {
-      // If this category is open and also the one we’re viewing,
-      // just close the dropdown visually but keep the tab functional
-      return activeTab !== "Dashboard" && activeCategory === cat ? cat : null;
-    }
-    return cat;
-  });
-}}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveCategory((prev) => (prev === cat ? null : cat));
+                }}
                 className={`px-4 py-1.5 rounded-lg font-semibold transition ${
-                  activeCategory === cat ? "bg-blue-700 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+                  activeCategory === cat
+                    ? "bg-blue-700 text-white"
+                    : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
                 }`}
               >
                 {cat} ▾
               </button>
 
               {activeCategory === cat && (
-                <div className="absolute left-0 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 min-w-[220px]">
+                <div
+                  className="absolute left-0 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 min-w-[200px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {Object.keys(categories[cat] || {}).map((tab) => (
                     <div
                       key={tab}
@@ -511,16 +298,23 @@ export default function Home() {
                           e.stopPropagation();
                           removeTabFromCategory(cat, tab);
                         }}
-                        className="text-red-400 hover:text-red-500"
+                        className="opacity-40 hover:opacity-100 text-red-400 hover:text-red-500 text-sm transition"
+                        title="Delete Tab"
                       >
                         ✖
                       </button>
                     </div>
                   ))}
-                  <div className="px-3 py-2 text-blue-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800" onClick={() => addTabToCategory(cat)}>
+                  <div
+                    className="px-3 py-2 text-blue-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800"
+                    onClick={() => addTabToCategory(cat)}
+                  >
                     ＋ Add Tab
                   </div>
-                  <div className="px-3 py-2 text-red-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800" onClick={() => removeCategory(cat)}>
+                  <div
+                    className="px-3 py-2 text-red-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800"
+                    onClick={() => removeCategory(cat)}
+                  >
                     🗑 Delete Category
                   </div>
                 </div>
@@ -530,53 +324,19 @@ export default function Home() {
         </div>
       )}
 
+      {/* Main content */}
       <main className="p-6">
-        {/* Dashboard */}
-        {activeTab === "Dashboard" && !showSettings && (
-          <div className="space-y-6">
-            <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <div className="text-sm text-neutral-400">Inventory Value</div>
-                  <div className="text-3xl font-extrabold text-blue-300">{fmtMoney(grandTotal)}€</div>
-                </div>
-                <div className="text-base font-semibold">
-                  {dashPct == null ? (
-                    <span className="text-neutral-400">Snapshot auto-saves at {settings.snapshotTimeHHMM} WEST</span>
-                  ) : (
-                    <span className={dashPct > 0 ? "text-green-400" : dashPct < 0 ? "text-red-400" : "text-neutral-300"}>
-                      {dashPct > 0 ? "+" : ""}
-                      {Math.abs(dashPct).toFixed(2)} % since last snapshot
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 shadow">
-              {Object.keys(totalsPerTab).map((label) => (
-                <div key={label} className="flex justify-between py-2 border-b border-neutral-800 last:border-0">
-                  <span>{label}</span>
-                  <span className="text-green-400">{fmtMoney(totalsPerTab[label] || 0)}€</span>
-                </div>
-              ))}
-              <div className="flex justify-between mt-4 text-lg font-bold">
-                <span>Total Inventory</span>
-                <span className="text-blue-300">{fmtMoney(grandTotal)}€</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Settings */}
-        {showSettings && (
+        {showSettings ? (
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Rarity Colors */}
             <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
               <h2 className="text-xl font-semibold mb-4">Rarity Colors</h2>
               <div className="space-y-3">
                 {settings.colors.map((c, idx) => (
-                  <div key={idx} className="grid md:grid-cols-[1fr,160px,80px,auto] gap-3 items-center bg-neutral-800/50 rounded-lg p-3">
+                  <div
+                    key={idx}
+                    className="grid md:grid-cols-[1fr,160px,80px,auto] gap-3 items-center bg-neutral-800/50 rounded-lg p-3"
+                  >
                     <input
                       value={c.name}
                       onChange={(e) =>
@@ -628,167 +388,37 @@ export default function Home() {
               </button>
             </section>
 
-            {/* Behavior Settings */}
             <BehaviorSettings settings={settings} setSettings={setSettings} />
           </div>
-        )}
-
-        {/* Tab page */}
-        {!showSettings && activeTab !== "Dashboard" && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-semibold">
-                {activeCategory} ▸ {activeTab}
-              </h2>
-              <button onClick={addRow} className="bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm">
-                ＋ Add Item
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-neutral-800 text-neutral-300">
-                    <th className="p-2 text-left">Item</th>
-                    <th className="p-2 text-center">Qty</th>
-                    <th className="p-2 text-center">Price (€)</th>
-                    <th className="p-2 text-center">Fluctuation %</th>
-                    <th className="p-2 text-center">Total (€)</th>
-                    <th className="p-2 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeRows.map((row, i) => {
-                    const total = (row.price || 0) * (row.qty || 0);
-                    const tint = hexToRgba(row.colorHex || "", 0.5);
-
-                    // Fluctuation display (+/- with natural minus)
-                    let fluctDisplay = "—";
-                    let color = "text-neutral-400";
-                    if (typeof row.fluctPct === "number") {
-                      color = row.fluctPct > 0 ? "text-green-400" : row.fluctPct < 0 ? "text-red-400" : "text-neutral-300";
-                      const signed = row.fluctPct > 0 ? `+${row.fluctPct.toFixed(2)}` : row.fluctPct.toFixed(2);
-                      fluctDisplay = `${signed} %`;
-                    }
-
-                    return (
-                      <tr key={i} style={tint ? { backgroundColor: tint } : {}} className="border-b border-neutral-800 hover:bg-neutral-800/40 transition">
-                        <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => openColorMenuAtButton(activeCategory, activeTab, i, e)}
-                              className="h-4 w-4 rounded border border-neutral-700"
-                              style={{ backgroundColor: row.colorHex || "transparent" }}
-                              title="Set color"
-                            />
-                            <input
-                              value={row.name || ""}
-                              disabled={row.locked}
-                              onChange={(e) => {
-                                const next = { ...categories };
-                                const rows = [...(next[activeCategory]?.[activeTab] || [])];
-                                rows[i].name = e.target.value;
-                                next[activeCategory][activeTab] = rows;
-                                setCategories(next);
-                              }}
-                              placeholder="Item name"
-                              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none w-full"
-                            />
-                          </div>
-                        </td>
-
-                        <td className="p-2 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => {
-                                const next = { ...categories };
-                                const rows = [...(next[activeCategory]?.[activeTab] || [])];
-                                rows[i].qty = Math.max(0, (rows[i].qty || 0) - 1);
-                                next[activeCategory][activeTab] = rows;
-                                setCategories(next);
-                              }}
-                              className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
-                            >
-                              −
-                            </button>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={row.qty ?? 1}
-                              onChange={(e) => {
-                                if (row.locked) return;
-                                const val = e.target.value.replace(/\D/g, "");
-                                const next = { ...categories };
-                                const rows = [...(next[activeCategory]?.[activeTab] || [])];
-                                rows[i].qty = Number(val);
-                                next[activeCategory][activeTab] = rows;
-                                setCategories(next);
-                              }}
-                              className="w-12 text-center bg-neutral-800 text-gray-100 rounded border border-neutral-700 focus:border-blue-600 outline-none"
-                            />
-                            <button
-                              onClick={() => {
-                                const next = { ...categories };
-                                const rows = [...(next[activeCategory]?.[activeTab] || [])];
-                                rows[i].qty = (rows[i].qty || 0) + 1;
-                                next[activeCategory][activeTab] = rows;
-                                setCategories(next);
-                              }}
-                              className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </td>
-
-                        <td className="p-2 text-center text-green-400">{fmtMoney(row.price || 0)}</td>
-                        <td className={`p-2 text-center ${color}`}>{fluctDisplay}</td>
-                        <td className="p-2 text-center text-blue-300">{fmtMoney(total)}</td>
-
-                        <td className="p-2 text-center">
-                          <button onClick={() => toggleLockRow(i)} className="text-neutral-300 hover:text-blue-300">
-                            {row.locked ? "🔒" : "🔓"}
-                          </button>
-                          <button onClick={() => deleteRow(i)} className="ml-3 text-red-400 hover:text-red-500">
-                            🗑
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        ) : (
+          <>
+            {activeTab === "Dashboard" ? (
+              <div className="space-y-6">
+                <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-neutral-400">Inventory Value</div>
+                      <div className="text-3xl font-extrabold text-blue-300">{fmtMoney(grandTotal)}€</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-semibold">{activeTab}</h2>
+                  <button
+                    onClick={addRow}
+                    className="bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
+                  >
+                    ＋ Add Item
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </main>
-
-      {/* Color menu portal */}
-      {colorMenu.open && (
-        <div id="color-menu-portal" className="fixed z-50" style={{ top: colorMenu.y, left: colorMenu.x }}>
-          <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
-            <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
-            <button
-              onClick={() => applyColorToRow(colorMenu.cat, colorMenu.tab, colorMenu.index, "")}
-              className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-            >
-              <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
-              None
-            </button>
-            {settings.colors.map((c) => (
-              <button
-                key={c.name + c.hex}
-                onClick={() => applyColorToRow(colorMenu.cat, colorMenu.tab, colorMenu.index, c.hex)}
-                className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-              >
-                <span className="h-3 w-3 rounded border border-neutral-600" style={{ backgroundColor: c.hex }} />
-                {c.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
