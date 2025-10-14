@@ -475,7 +475,18 @@ export default function Home() {
           {Object.keys(categories).map((cat) => (
             <div key={cat} className="relative">
               <button
-                onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
+                onClick={() => {
+  // Only toggle dropdown open/close visually,
+  // but never clear activeCategory if a tab under it is open
+  setActiveCategory((prev) => {
+    if (prev === cat) {
+      // If this category is open and also the one we’re viewing,
+      // just close the dropdown visually but keep the tab functional
+      return activeTab !== "Dashboard" && activeCategory === cat ? cat : null;
+    }
+    return cat;
+  });
+}}
                 className={`px-4 py-1.5 rounded-lg font-semibold transition ${
                   activeCategory === cat ? "bg-blue-700 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
                 }`}
