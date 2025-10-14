@@ -514,7 +514,16 @@ export default function Home() {
         <div className="grid grid-cols-3 items-center">
           {/* LEFT: Title + timestamp */}
           <div className="justify-self-start">
-            <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
+            <div className="flex items-center gap-3">
+  <img
+    src="/logo.png"
+    alt="CS2 Prices Logo"
+    className="w-[40px] h-[40px] object-contain"
+  />
+  <h1 className="text-2xl font-extrabold text-orange-400 tracking-wide">
+    CS2 Prices
+  </h1>
+</div>
             <div className="mt-1 text-xs text-neutral-400">
               {lastUpdatedAt
                 ? `Last updated at ${lastUpdatedAt} WEST`
