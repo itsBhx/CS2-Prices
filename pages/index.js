@@ -816,6 +816,19 @@ export default function Home() {
       className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0"
     >
       <div className="flex items-center gap-2">
+        {img && (
+          <img
+            src={img}
+            alt=""
+            className="w-[28px] h-[28px] object-contain"
+          />
+        )}
+        <span>{name}</span>
+      </div>
+      <span className="text-green-400">{fmtMoney(totals[name] || 0)}€</span>
+    </div>
+  );
+})}
 
         {/* Settings */}
         {showSettings && (
