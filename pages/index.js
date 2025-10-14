@@ -641,15 +641,15 @@ useEffect(() => {
                     }`}
                   >
                     <span>{sub}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeTab(sub);
-                      }}
-                      className="ml-2 text-xs text-neutral-400 hover:text-red-400"
-                    >
-                      ✕
-                    </button>
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    removeSubTab(t.folder, sub);  // ✅ this is the correct new function
+  }}
+  className="ml-2 text-xs text-neutral-400 hover:text-red-400"
+>
+  ✕
+</button>
                   </div>
                 ))}
                 <button
