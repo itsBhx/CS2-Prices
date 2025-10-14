@@ -508,7 +508,7 @@ export default function Home() {
       : null;
 
   return (
-    <div className="min-h-screen text-gray-100 font-sans bg-gradient-to-br from-[#050505] to-[#121212]">
+    <div className="min-h-screen text-orange-50 font-sans bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
       <header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
         {/* Perfect 3-column alignment */}
         <div className="grid grid-cols-3 items-center">
@@ -554,7 +554,7 @@ export default function Home() {
           <div className="justify-self-end flex items-center gap-3">
             <button
               onClick={addTab}
-              className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
+              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all"
               title="Add Tab"
             >
               ＋ Add Tab
@@ -936,7 +936,7 @@ export default function Home() {
                     });
                   }
                 }}
-                className="bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
+                className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all"
               >
                 ＋ Add Item
               </button>
@@ -945,7 +945,7 @@ export default function Home() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-neutral-800 text-neutral-300">
+                  <tr className="bg-neutral-900 text-orange-400 font-bold uppercase tracking-wide">
                     <th className="p-2 text-left">Item</th>
                     <th className="p-2 text-center">Qty</th>
                     <th className="p-2 text-center">Price (€)</th>
