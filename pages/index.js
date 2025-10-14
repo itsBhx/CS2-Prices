@@ -68,6 +68,8 @@ export default function Home() {
   const [snapshots, setSnapshots] = useState({});
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [apiStatus, setApiStatus] = useState("stable"); // "stable" | "429" | "down"
+  const [isLoading, setIsLoading] = useState(false); // controls spinner visibility
   const [colorMenu, setColorMenu] = useState({ open: false, tab: null, index: null, x: 0, y: 0 });
   const refreshTimerRef = useRef([]);
   const isRefreshingRef = useRef(false);
@@ -310,6 +312,8 @@ useEffect(() => {
           continue;
         }
         isRefreshingRef.current = true;
+        setIsLoading(true);
+        setApiStatus("stable");
         console.log(`🔄 Starting full refresh cycle (${intervalMin} min interval)`);
 
         // Always get fresh state each loop iteration
@@ -330,9 +334,23 @@ useEffect(() => {
             const name = row?.name?.trim();
             if (!name) continue;
 
-            try {
-              const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
-              const json = await res.json();
+try {
+  const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
+
+  if (res.status === 429) {
+    console.warn("⚠️ Steam API rate limited (429)");
+    setApiStatus("429");
+    await sleep(10000); // 10s cooldown before retry
+    continue;
+  }
+
+  if (!res.ok) {
+    console.warn("❌ Steam API failed with status", res.status);
+    setApiStatus("down");
+    continue;
+  }
+
+  const json = await res.json();
 
               if (json.ok && json.lowest != null) {
                 const newPrice = Number(json.lowest);
@@ -375,6 +393,8 @@ useEffect(() => {
         localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
         console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
         isRefreshingRef.current = false;
+        setIsLoading(false);
+        if (apiStatus === "stable") console.log("✅ Steam API stable");
         await sleep(intervalMs);
       }
     };
@@ -546,11 +566,48 @@ useEffect(() => {
   </h1>
 </div>
             <div className="mt-1 text-xs text-neutral-400">
-              {lastUpdatedAt
-                ? `Last updated at ${lastUpdatedAt} WEST`
-                : "Waiting for first auto refresh…"}
-            </div>
-          </div>
+  {lastUpdatedAt
+    ? `Last updated at ${lastUpdatedAt} WEST`
+    : "Waiting for first auto refresh…"}
+</div>
+
+{/* API + Loading Status */}
+<div className="flex items-center gap-3 mt-1 text-xs text-neutral-400 transition-all duration-500">
+  {isLoading && (
+    <div className="flex items-center gap-1 text-orange-400">
+      <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+      <span>Fetching prices…</span>
+    </div>
+  )}
+  {!isLoading && (
+    <div
+      className={`flex items-center gap-1 ${
+        apiStatus === "stable"
+          ? "text-green-400"
+          : apiStatus === "429"
+          ? "text-yellow-400"
+          : "text-red-400"
+      }`}
+    >
+      <div
+        className={`w-3 h-3 rounded-full ${
+          apiStatus === "stable"
+            ? "bg-green-500"
+            : apiStatus === "429"
+            ? "bg-yellow-500"
+            : "bg-red-500"
+        }`}
+      ></div>
+      <span>
+        {apiStatus === "stable"
+          ? "Steam API stable"
+          : apiStatus === "429"
+          ? "Rate limited"
+          : "Steam offline"}
+      </span>
+    </div>
+  )}
+</div>
 
           {/* CENTER: Main Dashboard button */}
           <div className="justify-self-center">
