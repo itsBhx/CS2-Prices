@@ -70,6 +70,7 @@ export default function Home() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [colorMenu, setColorMenu] = useState({ open: false, tab: null, index: null, x: 0, y: 0 });
   const refreshTimerRef = useRef([]);
+  const isRefreshingRef = useRef(false);
 
   /* --------------------------- Load / Save localStorage --------------------------- */
   useEffect(() => {
@@ -224,12 +225,23 @@ export default function Home() {
     [totals]
   );
 
-  /* -------------------------- Daily snapshots -------------------------- */
-  useEffect(() => {
+/* -------------------------- Daily snapshots -------------------------- */
+useEffect(() => {
+  const checkSnapshot = async () => {
     const key = todayKeyLisbon();
-    if (!hasPassedLisbonHHMM(settings.snapshotTimeHHMM)) return;
-    if (snapshots["dashboard"]?.dateKey === key) return;
+    const passed = hasPassedLisbonHHMM(settings.snapshotTimeHHMM);
+    const alreadyTaken = snapshots["dashboard"]?.dateKey === key;
 
+    // Skip if not time yet or already taken
+    if (!passed || alreadyTaken) return;
+
+    // Wait for refresh loop to finish if active
+    while (isRefreshingRef.current) {
+      console.log("⏳ Waiting for refresh loop to finish before snapshot...");
+      await new Promise((r) => setTimeout(r, 5000)); // check every 5s
+    }
+
+    console.log("📸 Taking daily snapshot...");
     const newSnaps = { ...snapshots };
     newSnaps["dashboard"] = { value: grandTotal, dateKey: key, ts: Date.now() };
 
@@ -240,8 +252,17 @@ export default function Home() {
         ts: Date.now(),
       };
     }
+
     setSnapshots(newSnaps);
-  }, [grandTotal, totals, allTabNames, snapshots, settings.snapshotTimeHHMM]);
+    localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
+    console.log(`✅ Snapshot completed for ${key} at ${settings.snapshotTimeHHMM} WEST`);
+  };
+
+  // Check once per minute
+  const interval = setInterval(checkSnapshot, 60 * 1000);
+  checkSnapshot(); // run immediately on mount
+  return () => clearInterval(interval);
+}, [totals, allTabNames, grandTotal, snapshots, settings.snapshotTimeHHMM]);
 
   /* -------------------------- Auto refresh system -------------------------- */
   useEffect(() => {
@@ -288,7 +309,7 @@ export default function Home() {
           await sleep(60000); // recheck every minute
           continue;
         }
-
+        isRefreshingRef.current = true;
         console.log(`🔄 Starting full refresh cycle (${intervalMin} min interval)`);
 
         // Always get fresh state each loop iteration
@@ -353,7 +374,7 @@ export default function Home() {
         setLastUpdatedAt(formatLisbonHM());
         localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
         console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
-
+        isRefreshingRef.current = false;
         await sleep(intervalMs);
       }
     };
