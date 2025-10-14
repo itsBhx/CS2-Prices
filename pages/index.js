@@ -614,22 +614,21 @@ function BehaviorSettings({ settings, setSettings }) {
   }, [colorMenu.open]);
 
   /* -------------------------- Close folders on outside click -------------------------- */
-  useEffect(() => {
-    const handleBodyClick = (e) => {
-      // Ignore clicks directly inside folder elements
-      if (e.target.closest("[data-folder]")) return;
+useEffect(() => {
+  const handleBodyClick = (e) => {
+    // Ignore clicks inside folders OR inside settings panel
+    if (e.target.closest("[data-folder]") || e.target.closest("[data-settings]")) return;
 
-      // Close all open folders
-      setTabs((prev) =>
-        prev.map((t) =>
-          typeof t === "object" && t.open ? { ...t, open: false } : t
-        )
-      );
-    };
+    setTabs((prev) =>
+      prev.map((t) =>
+        typeof t === "object" && t.open ? { ...t, open: false } : t
+      )
+    );
+  };
 
-    document.body.addEventListener("click", handleBodyClick);
-    return () => document.body.removeEventListener("click", handleBodyClick);
-  }, []);
+  document.body.addEventListener("click", handleBodyClick);
+  return () => document.body.removeEventListener("click", handleBodyClick);
+}, []);
 
   /* ------------------------------- Render UI ------------------------------- */
   const dashSnap = snapshots["dashboard"];
@@ -1036,8 +1035,8 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
         )}
 
         {/* Settings */}
-        {showSettings && (
-          <div className="max-w-3xl mx-auto space-y-6">
+{showSettings && (
+  <div className="max-w-3xl mx-auto space-y-6" data-settings>
             {/* Rarity Colors */}
             <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
               <h2 className="text-xl font-semibold mb-4">Rarity Colors</h2>
