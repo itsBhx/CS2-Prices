@@ -517,18 +517,18 @@ const applyColorToRow = (tab, i, hex) => {
   </div>
 </header>
 
-{/* New Tabs with Folder Support */}
+{/* Horizontal Tabs with Folder Dropdowns */}
 {!showSettings && (
-  <nav className="flex flex-col gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
+  <nav className="flex flex-wrap items-center gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800 relative">
     {tabs.map((t, idx) => {
-      // If this entry is a normal tab (string)
+      // Normal tab (string)
       if (typeof t === "string") {
         if (t === "Dashboard") return null;
         return (
           <div
             key={idx}
             onClick={() => setActiveTab(t)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
+            className={`relative px-4 py-2 rounded-lg cursor-pointer transition ${
               activeTab === t
                 ? "bg-blue-800 shadow-md shadow-black/30"
                 : "bg-neutral-800 hover:bg-neutral-700"
@@ -540,7 +540,7 @@ const applyColorToRow = (tab, i, hex) => {
                 e.stopPropagation();
                 removeTab(t);
               }}
-              className="text-xs text-neutral-300 hover:text-red-400"
+              className="ml-2 text-xs text-neutral-300 hover:text-red-400"
             >
               ✕
             </button>
@@ -550,62 +550,75 @@ const applyColorToRow = (tab, i, hex) => {
 
       // Folder case (object)
       return (
-        <div key={idx}>
+        <div key={idx} className="relative">
           <div
             onClick={() => toggleFolder(t.folder)}
-            className="flex items-center justify-between px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 cursor-pointer"
+            className={`flex items-center px-4 py-2 rounded-lg cursor-pointer transition ${
+              t.open
+                ? "bg-blue-800 shadow-md shadow-black/30"
+                : "bg-neutral-800 hover:bg-neutral-700"
+            }`}
           >
-            <span>
-              {t.open ? "📂" : "📁"} {t.folder}
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  addTabToFolder(t.folder);
-                }}
-                className="text-xs text-neutral-300 hover:text-blue-400"
-                title="Add tab to this folder"
-              >
-                ＋
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeTabOrFolder(t);
-                }}
-                className="text-xs text-neutral-300 hover:text-red-400"
-                title="Delete folder"
-              >
-                ✕
-              </button>
-            </div>
+            <span className="mr-1 font-medium">{t.folder}</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-3 w-3 transition-transform ${
+                t.open ? "rotate-180" : ""
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
 
+          {/* Dropdown items */}
           {t.open && (
-            <div className="ml-6 mt-1 space-y-1">
-              {t.tabs.map((sub) => (
-                <div
-                  key={sub}
-                  onClick={() => setActiveTab(sub)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
-                    activeTab === sub
-                      ? "bg-blue-800 shadow-md shadow-black/30"
-                      : "bg-neutral-800 hover:bg-neutral-700"
-                  }`}
-                >
-                  <span>{sub}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTab(sub);
-                    }}
-                    className="text-xs text-neutral-300 hover:text-red-400"
+            <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20">
+              <div className="flex flex-col">
+                {t.tabs.map((sub) => (
+                  <div
+                    key={sub}
+                    onClick={() => setActiveTab(sub)}
+                    className={`flex items-center justify-between px-3 py-1.5 text-sm cursor-pointer transition ${
+                      activeTab === sub
+                        ? "bg-blue-700 text-white"
+                        : "hover:bg-neutral-700 text-neutral-300"
+                    }`}
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
+                    <span>{sub}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeTab(sub);
+                      }}
+                      className="ml-2 text-xs text-neutral-400 hover:text-red-400"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addTabToFolder(t.folder);
+                  }}
+                  className="text-left w-full px-3 py-1.5 text-sm text-blue-400 hover:bg-neutral-800 rounded-b-lg"
+                >
+                  ＋ Add Tab
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTabOrFolder(t);
+                  }}
+                  className="text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
+                >
+                  🗑 Delete Folder
+                </button>
+              </div>
             </div>
           )}
         </div>
