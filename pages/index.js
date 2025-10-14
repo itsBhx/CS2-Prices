@@ -533,21 +533,23 @@ export default function Home() {
 
           {/* CENTER: Main Dashboard button */}
           <div className="justify-self-center">
-            <button
-              onClick={() => {
-                setActiveTab("Dashboard");
-                setShowSettings(false);
-              }}
-              className={`group relative px-7 py-2 text-sm font-semibold rounded-full transition-all duration-300
-                ${activeTab === "Dashboard"
-                  ? "text-white bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.5)] scale-[1.05]"
-                  : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(59,130,246,0.3)]"}`}
-            >
-              <span className="relative z-10">Dashboard</span>
-              {activeTab === "Dashboard" && (
-                <span className="absolute inset-0 rounded-full bg-blue-600/20 blur-xl animate-pulse" />
-              )}
-            </button>
+<button
+  onClick={() => {
+    setActiveTab("Dashboard");
+    setShowSettings(false);
+  }}
+  className={`group relative px-8 py-2.5 text-base font-extrabold tracking-wide rounded-full transition-all duration-300
+    ${
+      activeTab === "Dashboard"
+        ? "text-white bg-gradient-to-r from-orange-600 to-orange-500 shadow-[0_0_20px_rgba(255,165,0,0.4)] scale-[1.05]"
+        : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-orange-400 hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(255,165,0,0.3)]"
+    }`}
+>
+  <span className="relative z-10">Dashboard</span>
+  {activeTab === "Dashboard" && (
+    <span className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl animate-pulse" />
+  )}
+</button>
           </div>
 
           {/* RIGHT: Add + Settings */}
@@ -559,14 +561,14 @@ export default function Home() {
             >
               ＋ Add Tab
             </button>
-            <button
-              onClick={addFolder}
-              className="bg-purple-800 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
-              title="Add Folder"
-            >
-              ＋ Add Folder
-            </button>
-
+<button
+  onClick={addFolder}
+  className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+  title="Add Folder"
+>
+  ＋ Add Folder
+</button>
+    
             <button
               onClick={() => {
                 setShowSettings((s) => !s);
