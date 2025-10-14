@@ -990,28 +990,47 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                         className="border-b border-neutral-800 hover:bg-neutral-800/40 transition"
                       >
                         <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => openColorMenuAtButton(activeTab, i, e)}
-                              className="h-4 w-4 rounded border border-neutral-700"
-                              style={{
-                                backgroundColor: row.colorHex || "transparent",
-                              }}
-                              title="Set color"
-                            />
-                            <input
-                              value={row.name || ""}
-                              disabled={row.locked}
-                              onChange={(e) => {
-                                const rows = [...(data[activeTab] || [])];
-                                rows[i].name = e.target.value;
-                                setData({ ...data, [activeTab]: rows });
-                              }}
-                              placeholder="Item name"
-                              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-blue-600 outline-none w-full"
-                            />
-                          </div>
+<div className="flex items-center gap-2">
+  {/* Color picker button */}
+  <button
+    type="button"
+    onClick={(e) => openColorMenuAtButton(activeTab, i, e)}
+    className="h-4 w-4 rounded border border-neutral-700"
+    style={{
+      backgroundColor: row.colorHex || "transparent",
+    }}
+    title="Set color"
+  />
+
+  {/* Item name input */}
+  <input
+    value={row.name || ""}
+    disabled={row.locked}
+    onChange={(e) => {
+      const rows = [...(data[activeTab] || [])];
+      rows[i].name = e.target.value;
+      setData({ ...data, [activeTab]: rows });
+    }}
+    placeholder="Item name"
+    className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-orange-500 outline-none flex-1"
+  />
+
+  {/* Steam Market popup button */}
+  {row.name && row.name.trim() !== "" && (
+    <button
+      onClick={() => {
+        const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(row.name.trim())}`;
+        window.open(url, "_blank", "noopener,noreferrer,width=1200,height=800");
+      }}
+      className="ml-1 px-2 py-1 text-sm rounded-md bg-neutral-800 hover:bg-neutral-700 text-orange-400 hover:text-orange-300 border border-neutral-700 hover:border-orange-500 transition-all"
+      title="Open on Steam Market"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className="w-4 h-4 fill-orange-400">
+  <path d="M496 0H16A16 16 0 0 0 0 16v480a16 16 0 0 0 16 16h480a16 16 0 0 0 16-16V16a16 16 0 0 0-16-16zm-36.6 256a203.4 203.4 0 0 1-203.4 203.4A203.4 203.4 0 0 1 52.6 256a203.4 203.4 0 0 1 203.4-203.4A203.4 203.4 0 0 1 459.4 256zM167 276.4l-50.4 24.5a56 56 0 1 0 88 57.7l44.7-89.8a78.7 78.7 0 0 0 49.3-73.4V192h.1a64 64 0 1 0-64 64h.1v.3l-66 20.1zm-29.2 69.3a28.5 28.5 0 1 1 28.5-28.5 28.5 28.5 0 0 1-28.5 28.5zm172.5-138a36.4 36.4 0 1 1 36.4-36.4 36.4 36.4 0 0 1-36.4 36.4z"/>
+</svg>
+    </button>
+  )}
+</div>
                         </td>
 
                         <td className="p-2 text-center">
