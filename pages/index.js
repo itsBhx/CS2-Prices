@@ -421,12 +421,12 @@ export default function Home() {
         </div>
 
         <div className="flex justify-end mt-6">
-          <button
-            onClick={handleSave}
-            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
-          >
-            💾 Save Changes
-          </button>
+<button
+  onClick={handleSave}
+  className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+>
+  Save Changes
+</button>
         </div>
       </section>
     );
@@ -903,17 +903,17 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={() =>
-                  setSettings((p) => ({
-                    ...p,
-                    colors: [...p.colors, { name: "New", hex: "#ffffff" }],
-                  }))
-                }
-                className="mt-3 bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
-              >
-                ＋ Add Color
-              </button>
+<button
+  onClick={() =>
+    setSettings((p) => ({
+      ...p,
+      colors: [...p.colors, { name: "New", hex: "#ffffff" }],
+    }))
+  }
+  className="mt-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+>
+  ＋ Add Color
+</button>
             </section>
 
             {/* Behavior Settings */}
