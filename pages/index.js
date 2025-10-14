@@ -750,7 +750,7 @@ export default function Home() {
             </div>
 
             <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 shadow">
-{tabs.map((t, idx) => {
+              {tabs.map((t, idx) => {
   // normal tab (string)
   if (typeof t === "string") {
     if (t === "Dashboard") return null;
@@ -829,6 +829,14 @@ export default function Home() {
     </div>
   );
 })}
+
+              <div className="flex justify-between mt-4 text-lg font-bold">
+                <span>Total Inventory</span>
+                <span className="text-blue-300">{fmtMoney(grandTotal)}€</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Settings */}
         {showSettings && (
