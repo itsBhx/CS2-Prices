@@ -1002,47 +1002,47 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
     />
 
     {/* Item name + Steam Market link as a small row group */}
-    <div className="flex items-center flex-1 min-w-0">
-      <input
-        value={row.name || ""}
-        disabled={row.locked}
-        onChange={(e) => {
-          const rows = [...(data[activeTab] || [])];
-          rows[i].name = e.target.value;
-          setData({ ...data, [activeTab]: rows });
-        }}
-        placeholder="Item name"
-        className="bg-neutral-800 text-gray-100 px-2 py-1 rounded-l border border-neutral-700 focus:border-orange-500 outline-none w-full"
-      />
+<div className="flex items-center flex-1 min-w-0 relative">
+  <input
+    value={row.name || ""}
+    disabled={row.locked}
+    onChange={(e) => {
+      const rows = [...(data[activeTab] || [])];
+      rows[i].name = e.target.value;
+      setData({ ...data, [activeTab]: rows });
+    }}
+    placeholder="Item name"
+    className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-orange-500 outline-none w-full"
+  />
 
-      {/* Steam Market popup button */}
-      {row.name && row.name.trim() !== "" && (
-        <button
-          onClick={() => {
-            const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(
-              row.name.trim()
-            )}`;
-            window.open(url, "_blank", "noopener,noreferrer,width=1200,height=800");
-          }}
-          className="flex items-center justify-center px-2 bg-neutral-800 hover:bg-neutral-700 border border-l-0 border-neutral-700 hover:border-orange-500 rounded-r transition-all group shrink-0"
-          title="Open on Steam Market"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#ff8c00"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-4 h-4 group-hover:scale-110 group-hover:drop-shadow-[0_0_4px_#ff8c00] transition-all"
-          >
-            <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
-            <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
-          </svg>
-        </button>
-      )}
-    </div>
+  {/* Steam Market popup icon only */}
+  {row.name && row.name.trim() !== "" && (
+    <button
+      onClick={() => {
+        const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(
+          row.name.trim()
+        )}`;
+        window.open(url, "_blank", "noopener,noreferrer,width=1200,height=800");
+      }}
+      className="absolute right-2 flex items-center justify-center group"
+      title="Open on Steam Market"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#ff8c00"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 group-hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+      >
+        <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
+        <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
+      </svg>
+    </button>
+  )}
+</div>
   </div>
 </td>
 
