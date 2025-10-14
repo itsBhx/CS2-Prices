@@ -751,36 +751,54 @@ export default function Home() {
 
             <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 shadow">
               {/* Per-tab totals (group folders visually) */}
-              {tabs.map((t, idx) => {
-                if (typeof t === "string") {
-                  if (t === "Dashboard") return null;
-                  return (
-                    <div
-                      key={`total-${t}-${idx}`}
-                      className="flex justify-between py-2 border-b border-neutral-800 last:border-0"
-                    >
-                      <span>{t}</span>
-                      <span className="text-green-400">{fmtMoney(totals[t] || 0)}€</span>
-                    </div>
-                  );
-                }
+              if (typeof t === "string") {
+  if (t === "Dashboard") return null;
+  return (
+    <div
+      key={`total-${t}-${idx}`}
+      className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0"
+    >
+      <div className="flex items-center gap-2">
+        {t.image && (
+          <img
+            src={t.image}
+            alt=""
+            className="w-[28px] h-[28px] object-contain"
+          />
+        )}
+        <span>{t}</span>
+      </div>
+      <span className="text-green-400">{fmtMoney(totals[t] || 0)}€</span>
+    </div>
+  );
+}
 
                 if (t.folder) {
                   return (
                     <div key={`total-folder-${t.folder}-${idx}`} className="mb-2">
                       <div className="text-neutral-300 font-semibold mb-1">{t.folder}</div>
                       {(t.tabs || []).map((sub, i) => {
-                        const subName = getTabName(sub);
-                        return (
-                          <div
-                            key={`total-sub-${subName}-${i}`}
-                            className="flex justify-between py-1 pl-4 border-b border-neutral-800 last:border-0"
-                          >
-                            <span>{subName}</span>
-                            <span className="text-green-400">{fmtMoney(totals[subName] || 0)}€</span>
-                          </div>
-                        );
-                      })}
+  const subName = getTabName(sub);
+  const subImg = typeof sub === "object" ? sub.image : null;
+  return (
+    <div
+      key={`total-sub-${subName}-${i}`}
+      className="flex justify-between items-center py-1 pl-4 border-b border-neutral-800 last:border-0"
+    >
+      <div className="flex items-center gap-2">
+        {subImg && (
+          <img
+            src={subImg}
+            alt=""
+            className="w-[28px] h-[28px] object-contain"
+          />
+        )}
+        <span>{subName}</span>
+      </div>
+      <span className="text-green-400">{fmtMoney(totals[subName] || 0)}€</span>
+    </div>
+  );
+})}
                     </div>
                   );
                 }
