@@ -732,11 +732,11 @@ export default function Home() {
         {/* Dashboard */}
         {activeTab === "Dashboard" && !showSettings && (
           <div className="space-y-6">
-            <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4">
+            <div className="bg-neutral-900/70 border border-orange-900/60 rounded-xl p-5 shadow-[0_0_25px_rgba(255,140,0,0.1)] transition-all">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <div className="text-sm text-neutral-400">Inventory Value</div>
-                  <div className="text-3xl font-extrabold text-blue-300">{fmtMoney(grandTotal)}€</div>
+                  <div className="text-3xl font-extrabold text-orange-400">{fmtMoney(grandTotal)}€</div>
                 </div>
                 <div className="text-base font-semibold">
                   {dashPct == null ? (
@@ -844,7 +844,7 @@ export default function Home() {
 
               <div className="flex justify-between mt-4 text-lg font-bold">
                 <span>Total Inventory</span>
-                <span className="text-blue-300">{fmtMoney(grandTotal)}€</span>
+                <span className="text-orange-400">{fmtMoney(grandTotal)}€</span>
               </div>
             </div>
           </div>
@@ -1054,7 +1054,7 @@ export default function Home() {
 
                         <td className={`p-2 text-center ${color}`}>{fluctDisplay}</td>
 
-                        <td className="p-2 text-center text-blue-300">
+                        <td className="p-2 text-center text-orange-400">
                           {fmtMoney(total)}
                         </td>
 
@@ -1065,7 +1065,7 @@ export default function Home() {
                               rows[i].locked = !rows[i].locked;
                               setData({ ...data, [activeTab]: rows });
                             }}
-                            className="text-neutral-300 hover:text-blue-300"
+                            className="text-neutral-300 hover:text-orange-400"
                             title="Lock row"
                           >
                             {row.locked ? "🔒" : "🔓"}
