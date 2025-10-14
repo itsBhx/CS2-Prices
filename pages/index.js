@@ -639,7 +639,7 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen text-orange-50 font-sans bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
-<header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
+<header className="sticky top-0 z-50 px-6 py-4 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md">
   <div className="grid grid-cols-3 items-center">
     
     {/* LEFT: Title + timestamp + status */}
@@ -765,7 +765,7 @@ useEffect(() => {
 
       {/* Horizontal Tabs with Folder Dropdowns + 50x50 images */}
       {!showSettings && (
-        <nav className="flex flex-wrap items-center gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800 relative">
+        <nav className="sticky top-[76px] z-40 flex flex-wrap items-center gap-2 px-6 py-3 bg-neutral-900/70 border-b border-neutral-800 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md">
           {tabs.map((t, idx) => {
             // Folder
             if (typeof t === "object" && t.folder) {
