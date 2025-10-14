@@ -553,33 +553,34 @@ export default function Home() {
           </div>
 
           {/* RIGHT: Add + Settings */}
-          <div className="justify-self-end flex items-center gap-3">
-            <button
-              onClick={addTab}
-              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all"
-              title="Add Tab"
-            >
-              ＋ Add Tab
-            </button>
-<button
-  onClick={addFolder}
-  className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
-  title="Add Folder"
->
-  ＋ Add Folder
-</button>
-    
-            <button
-              onClick={() => {
-                setShowSettings((s) => !s);
-                setActiveTab("Dashboard");
-              }}
-              className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition"
-              title="Settings"
-            >
-              ⚙️
-            </button>
-          </div>
+<div className="justify-self-end flex items-center gap-3">
+  <button
+    onClick={addTab}
+    className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+    title="Add Tab"
+  >
+    ＋ Add Tab
+  </button>
+
+  <button
+    onClick={addFolder}
+    className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+    title="Add Folder"
+  >
+    ＋ Add Folder
+  </button>
+
+  <button
+    onClick={() => {
+      setShowSettings((s) => !s);
+      setActiveTab("Dashboard");
+    }}
+    className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 hover:text-orange-400 transition-all border border-neutral-700 hover:border-orange-500"
+    title="Settings"
+  >
+    ⚙️
+  </button>
+</div>
         </div>
       </header>
 
