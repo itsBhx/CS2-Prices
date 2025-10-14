@@ -483,13 +483,17 @@ try {
           console.log(`✅ Finished tab: ${tabName}`);
         }
 
-        setLastUpdatedAt(formatLisbonHM());
-        localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
-        console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
-        isRefreshingRef.current = false;
-        setIsLoading(false);
-        if (apiStatus === "stable") console.log("✅ Steam API stable");
-        await sleep(intervalMs);
+setLastUpdatedAt(formatLisbonHM());
+localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
+console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
+isRefreshingRef.current = false;
+setIsLoading(false);
+
+// ✅ Auto cloud save after each successful refresh
+await saveToCloud();
+
+if (apiStatus === "stable") console.log("✅ Steam API stable");
+await sleep(intervalMs);
       }
     };
 
@@ -764,23 +768,6 @@ try {
           className="w-5 h-5 opacity-80 hover:opacity-100 transition-all"
         />
       </button>
-
-            <button
-  onClick={loadFromCloud}
-  className="px-3 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500"
-  title="Load from Cloud"
->
-  Load Cloud
-</button>
-
-<button
-  onClick={saveToCloud}
-  className="px-3 py-2 text-xs rounded-lg bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold shadow-md hover:shadow-orange-500/40"
-  title="Save to Cloud"
->
-  Save Cloud
-</button>
-
     </div>
   </div>
 </header>
@@ -1122,10 +1109,39 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
 </button>
             </section>
 
-            {/* Behavior Settings */}
-            <BehaviorSettings settings={settings} setSettings={setSettings} />
-          </div>
-        )}
+{/* Behavior Settings */}
+<BehaviorSettings settings={settings} setSettings={setSettings} />
+
+{/* Cloud Sync Controls */}
+<section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+  <h2 className="text-xl font-semibold mb-4">Cloud Sync</h2>
+  <p className="text-sm text-neutral-400 mb-3">
+    Your data automatically saves to Supabase after every price refresh.
+    You can also manually load or save your current data below.
+  </p>
+
+  <div className="flex gap-3">
+    <button
+      onClick={loadFromCloud}
+      className="flex-1 px-3 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500 transition-all"
+    >
+      Load Cloud
+    </button>
+
+    <button
+      onClick={saveToCloud}
+      className="flex-1 px-3 py-2 text-sm rounded-lg bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold shadow-md hover:shadow-orange-500/40 transition-all"
+    >
+      Save Cloud
+    </button>
+  </div>
+
+  {syncMsg && (
+    <div className="mt-2 text-xs text-neutral-300">{syncMsg}</div>
+  )}
+</section>
+</div>
+)}
 
         {/* Active Tab Table */}
         {!showSettings && activeTab !== "Dashboard" && (
