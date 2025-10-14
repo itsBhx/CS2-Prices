@@ -146,6 +146,26 @@ const openTab = (cat, tab) => {
   setShowSettings(false);
 };
 
+  // Add item row inside the current active category + tab
+const addRow = () => {
+  if (!activeCategory || !activeTab || activeTab === "Dashboard") return;
+
+  const next = { ...categories };
+  const rows = next[activeCategory][activeTab] || [];
+
+  rows.push({
+    name: "",
+    qty: 1,
+    price: 0,
+    colorHex: "",
+    locked: false,
+  });
+
+  next[activeCategory][activeTab] = rows;
+  setCategories(next);
+  localStorage.setItem("cs2-categories", JSON.stringify(next));
+};
+
   /* ----------------------------- Totals per tab ----------------------------- */
   useEffect(() => {
     const t = {};
