@@ -58,6 +58,7 @@ const DEFAULT_SETTINGS = {
 
 /* ================================== App ==================================== */
 export default function Home() {
+  // tabs can be either simple strings ("Dashboard") or folders like { folder: "Majors", tabs: [...] }
   const [tabs, setTabs] = useState([]);
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [showSettings, setShowSettings] = useState(false);
@@ -106,6 +107,59 @@ export default function Home() {
     setData(nextData);
     setActiveTab("Dashboard");
   };
+
+  /* ------------------------------ Folder Functions ------------------------------ */
+
+// Create a new folder (like "Majors")
+const addFolder = () => {
+  const name = prompt("New folder name:");
+  if (!name || tabs.find(t => typeof t === "object" && t.folder === name)) return;
+  setTabs([...tabs, { folder: name, tabs: [], open: true }]);
+};
+
+// Add a tab inside a specific folder
+const addTabToFolder = (folderName) => {
+  const name = prompt("New tab name:");
+  if (!name) return;
+  setTabs(prev =>
+    prev.map(t =>
+      typeof t === "object" && t.folder === folderName
+        ? { ...t, tabs: [...t.tabs, name] }
+        : t
+    )
+  );
+  setData((p) => ({ ...p, [name]: [] }));
+  setActiveTab(name);
+};
+
+// Toggle folder open/close
+const toggleFolder = (folderName) =>
+  setTabs(prev =>
+    prev.map(t =>
+      typeof t === "object" && t.folder === folderName
+        ? { ...t, open: !t.open }
+        : t
+    )
+  );
+
+// Remove a tab or a folder
+const removeTabOrFolder = (target) => {
+  if (typeof target === "string") {
+    // normal tab removal
+    removeTab(target);
+    return;
+  }
+
+  if (!confirm(`Delete folder "${target.folder}" and all its tabs?`)) return;
+  const namesToRemove = target.tabs;
+  setTabs(prev => prev.filter(t => t !== target));
+  setData(prev => {
+    const next = { ...prev };
+    for (const name of namesToRemove) delete next[name];
+    return next;
+  });
+};
+
   const addRow = () => {
     if (activeTab === "Dashboard" || showSettings) return;
     const rows = data[activeTab] || [];
@@ -441,6 +495,14 @@ const applyColorToRow = (tab, i, hex) => {
       >
         ＋ Add Tab
       </button>
+          <button
+  onClick={addFolder}
+  className="bg-purple-800 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
+  title="Add Folder"
+>
+  ＋ Add Folder
+</button>
+
       <button
         onClick={() => {
           setShowSettings((s) => !s);
@@ -455,33 +517,100 @@ const applyColorToRow = (tab, i, hex) => {
   </div>
 </header>
 
-{/* Tabs (no Dashboard here) */}
+{/* New Tabs with Folder Support */}
 {!showSettings && (
-  <nav className="flex flex-wrap gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
-    {tabs
-      .filter((t) => t !== "Dashboard")
-      .map((tab) => (
-        <div
-          key={tab}
-          onClick={() => setActiveTab(tab)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
-            activeTab === tab
-              ? "bg-blue-800 shadow-md shadow-black/30"
-              : "bg-neutral-800 hover:bg-neutral-700"
-          }`}
-        >
-          <span>{tab}</span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              removeTab(tab);
-            }}
-            className="text-xs text-neutral-300 hover:text-red-400"
+  <nav className="flex flex-col gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
+    {tabs.map((t, idx) => {
+      // If this entry is a normal tab (string)
+      if (typeof t === "string") {
+        if (t === "Dashboard") return null;
+        return (
+          <div
+            key={idx}
+            onClick={() => setActiveTab(t)}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
+              activeTab === t
+                ? "bg-blue-800 shadow-md shadow-black/30"
+                : "bg-neutral-800 hover:bg-neutral-700"
+            }`}
           >
-            ✕
-          </button>
+            <span>{t}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTab(t);
+              }}
+              className="text-xs text-neutral-300 hover:text-red-400"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      }
+
+      // Folder case (object)
+      return (
+        <div key={idx}>
+          <div
+            onClick={() => toggleFolder(t.folder)}
+            className="flex items-center justify-between px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 cursor-pointer"
+          >
+            <span>
+              {t.open ? "📂" : "📁"} {t.folder}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addTabToFolder(t.folder);
+                }}
+                className="text-xs text-neutral-300 hover:text-blue-400"
+                title="Add tab to this folder"
+              >
+                ＋
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeTabOrFolder(t);
+                }}
+                className="text-xs text-neutral-300 hover:text-red-400"
+                title="Delete folder"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {t.open && (
+            <div className="ml-6 mt-1 space-y-1">
+              {t.tabs.map((sub) => (
+                <div
+                  key={sub}
+                  onClick={() => setActiveTab(sub)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg cursor-pointer transition ${
+                    activeTab === sub
+                      ? "bg-blue-800 shadow-md shadow-black/30"
+                      : "bg-neutral-800 hover:bg-neutral-700"
+                  }`}
+                >
+                  <span>{sub}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeTab(sub);
+                    }}
+                    className="text-xs text-neutral-300 hover:text-red-400"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      ))}
+      );
+    })}
   </nav>
 )}
 
