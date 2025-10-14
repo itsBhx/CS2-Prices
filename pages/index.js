@@ -54,13 +54,15 @@ const DEFAULT_SETTINGS = {
 
 /* ================================== App ==================================== */
 export default function Home() {
-  const [tabs, setTabs] = useState([]);
-  const [showSettings, setShowSettings] = useState(false);
-  const [data, setData] = useState({});
-  const [totals, setTotals] = useState({});
-  const [snapshots, setSnapshots] = useState({});
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const [categories, setCategories] = useState({});
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [activeCatCtx, setActiveCatCtx] = useState(null);
+
   const [colorMenu, setColorMenu] = useState({
     open: false,
     cat: null,
@@ -69,36 +71,26 @@ export default function Home() {
     x: 0,
     y: 0,
   });
-  const refreshTimerRef = useRef([]);
 
-  /* --------------------------- Load / Save localStorage --------------------------- */
+  /* --------------------------- Load / Save --------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setTabs(JSON.parse(localStorage.getItem("cs2-tabs")) || ["Dashboard"]);
-    setData(JSON.parse(localStorage.getItem("cs2-data")) || {});
-    setSnapshots(JSON.parse(localStorage.getItem("cs2-snapshots")) || {});
+    setCategories(JSON.parse(localStorage.getItem("cs2-categories")) || {});
     setSettings(JSON.parse(localStorage.getItem("cs2-settings")) || DEFAULT_SETTINGS);
     setLastUpdatedAt(localStorage.getItem("cs2-lastUpdatedAt") || null);
   }, []);
   useEffect(() => {
-    localStorage.setItem("cs2-settings", JSON.stringify(settings));
-  }, [settings]);
-
-  /* ------------------------------- Categories & Tabs ------------------------------- */
-  const [categories, setCategories] = useState({});
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [activeTab, setActiveTab] = useState("Dashboard");
-  const [activeCatCtx, setActiveCatCtx] = useState(null); // context for current tab
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = JSON.parse(localStorage.getItem("cs2-categories") || "{}");
-    setCategories(saved);
-  }, []);
-  useEffect(() => {
     localStorage.setItem("cs2-categories", JSON.stringify(categories));
   }, [categories]);
+  useEffect(() => {
+    localStorage.setItem("cs2-settings", JSON.stringify(settings));
+  }, [settings]);
+  useEffect(() => {
+    if (lastUpdatedAt)
+      localStorage.setItem("cs2-lastUpdatedAt", lastUpdatedAt);
+  }, [lastUpdatedAt]);
 
+  /* ------------------------------- Category Logic ------------------------------- */
   const addCategory = () => {
     const name = prompt("New category name:");
     if (!name || categories[name]) return;
@@ -106,10 +98,7 @@ export default function Home() {
   };
   const removeCategory = (name) => {
     const hasTabs = Object.keys(categories[name] || {}).length > 0;
-    if (hasTabs) {
-      alert("❌ Cannot delete a category that still has tabs inside.");
-      return;
-    }
+    if (hasTabs) return alert("❌ Cannot delete a category that has tabs.");
     if (!confirm(`Delete category "${name}"?`)) return;
     const next = { ...categories };
     delete next[name];
@@ -117,13 +106,12 @@ export default function Home() {
     if (activeCategory === name) setActiveCategory(null);
   };
   const addTabToCategory = (cat) => {
-    const tabName = prompt(`New tab inside "${cat}":`);
-    if (!tabName || categories[cat][tabName]) return;
+    const tab = prompt(`New tab inside "${cat}":`);
+    if (!tab || categories[cat][tab]) return;
     const next = { ...categories };
-    next[cat][tabName] = [];
+    next[cat][tab] = [];
     setCategories(next);
-    setActiveCategory(cat);
-    setActiveTab(tabName);
+    setActiveTab(tab);
     setActiveCatCtx(cat);
   };
   const removeTabFromCategory = (cat, tab) => {
@@ -134,12 +122,13 @@ export default function Home() {
     if (activeTab === tab) setActiveTab("Dashboard");
   };
   const openTab = (cat, tab) => {
-    setActiveCategory(null); // close dropdown
-    setActiveCatCtx(cat); // remember category context
+    setActiveCategory(null);
     setActiveTab(tab);
+    setActiveCatCtx(cat);
     setShowSettings(false);
   };
 
+  /* ------------------------------- Items ------------------------------- */
   const addRow = () => {
     if (!activeCatCtx || !activeTab || activeTab === "Dashboard") return;
     const next = { ...categories };
@@ -147,26 +136,14 @@ export default function Home() {
     rows.push({ name: "", qty: 1, price: 0, colorHex: "", locked: false });
     next[activeCatCtx][activeTab] = rows;
     setCategories(next);
-    localStorage.setItem("cs2-categories", JSON.stringify(next));
   };
-
-  /* -------- Close dropdowns when clicking outside -------- */
-  useEffect(() => {
-    const closeAll = () => setActiveCategory(null);
-    document.body.addEventListener("click", closeAll);
-    return () => document.body.removeEventListener("click", closeAll);
-  }, []);
-
-  /* ------------------------- Row actions ------------------------- */
   const toggleLockRow = (i) => {
     const next = { ...categories };
     const rows = next[activeCatCtx][activeTab] || [];
     rows[i].locked = !rows[i].locked;
     next[activeCatCtx][activeTab] = rows;
     setCategories(next);
-    localStorage.setItem("cs2-categories", JSON.stringify(next));
   };
-
   const deleteRow = (i) => {
     if (!confirm("Delete this item?")) return;
     const next = { ...categories };
@@ -174,23 +151,17 @@ export default function Home() {
     rows.splice(i, 1);
     next[activeCatCtx][activeTab] = rows;
     setCategories(next);
-    localStorage.setItem("cs2-categories", JSON.stringify(next));
   };
 
   /* ---------------------- Color Menu ---------------------- */
   const openColorMenuAtButton = (cat, tab, i, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const menuHeight = 200;
-    const viewportHeight = window.innerHeight;
-    const openAbove = rect.bottom + menuHeight > viewportHeight;
-    const y = openAbove ? rect.top - menuHeight - 6 : rect.bottom + 6;
-
+    const y = rect.bottom + menuHeight > window.innerHeight ? rect.top - menuHeight - 6 : rect.bottom + 6;
     setColorMenu({ open: true, cat, tab, index: i, x: rect.left, y });
   };
-
   const closeColorMenu = () =>
     setColorMenu({ open: false, cat: null, tab: null, index: null, x: 0, y: 0 });
-
   const applyColorToRow = (cat, tab, i, hex) => {
     const next = { ...categories };
     const rows = [...(next[cat]?.[tab] || [])];
@@ -198,57 +169,45 @@ export default function Home() {
     rows[i].colorHex = hex;
     next[cat][tab] = rows;
     setCategories(next);
-    localStorage.setItem("cs2-categories", JSON.stringify(next));
     closeColorMenu();
   };
+  useEffect(() => {
+    const closeAll = () => setActiveCategory(null);
+    document.body.addEventListener("click", closeAll);
+    return () => document.body.removeEventListener("click", closeAll);
+  }, []);
 
   /* -------------------------- Behavior Settings -------------------------- */
   function BehaviorSettings({ settings, setSettings }) {
-    const [pendingSettings, setPendingSettings] = useState(settings);
-    useEffect(() => setPendingSettings(settings), [settings]);
-    const handleSave = () => setSettings(pendingSettings);
-
+    const [temp, setTemp] = useState(settings);
+    useEffect(() => setTemp(settings), [settings]);
     return (
       <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
         <h2 className="text-xl font-semibold mb-4">Behavior</h2>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Snapshot time (WEST)
-            </label>
+            <label className="block text-sm text-neutral-400 mb-1">Snapshot time</label>
             <input
               type="time"
-              value={pendingSettings.snapshotTimeHHMM}
-              onChange={(e) =>
-                setPendingSettings({
-                  ...pendingSettings,
-                  snapshotTimeHHMM: e.target.value,
-                })
-              }
+              value={temp.snapshotTimeHHMM}
+              onChange={(e) => setTemp({ ...temp, snapshotTimeHHMM: e.target.value })}
               className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
             />
           </div>
           <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Auto refresh (min)
-            </label>
+            <label className="block text-sm text-neutral-400 mb-1">Auto refresh (min)</label>
             <input
               type="number"
-              value={pendingSettings.refreshMinutes}
-              onChange={(e) =>
-                setPendingSettings({
-                  ...pendingSettings,
-                  refreshMinutes: Number(e.target.value),
-                })
-              }
+              value={temp.refreshMinutes}
+              onChange={(e) => setTemp({ ...temp, refreshMinutes: Number(e.target.value) })}
               className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
             />
           </div>
         </div>
         <div className="flex justify-end mt-6">
           <button
-            onClick={handleSave}
-            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+            onClick={() => setSettings(temp)}
+            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm"
           >
             💾 Save Changes
           </button>
@@ -266,33 +225,26 @@ export default function Home() {
           <div>
             <h1 className="text-xl font-bold text-blue-400">💎 CS2 Prices Dashboard</h1>
             <div className="mt-1 text-xs text-neutral-400">
-              {lastUpdatedAt
-                ? `Last updated at ${lastUpdatedAt} WEST`
-                : "Waiting for first auto refresh…"}
+              {lastUpdatedAt ? `Last updated at ${lastUpdatedAt} WEST` : "Waiting for first auto refresh…"}
             </div>
           </div>
-
           <div className="justify-self-center">
             <button
               onClick={() => {
                 setActiveTab("Dashboard");
                 setShowSettings(false);
               }}
-              className={`group relative px-7 py-2 text-sm font-semibold rounded-full transition-all duration-300 ${
+              className={`group relative px-7 py-2 text-sm font-semibold rounded-full transition-all ${
                 activeTab === "Dashboard"
                   ? "text-white bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.5)] scale-[1.05]"
-                  : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white hover:scale-[1.03]"
+                  : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white"
               }`}
             >
               Dashboard
             </button>
           </div>
-
           <div className="justify-self-end flex items-center gap-3">
-            <button
-              onClick={addCategory}
-              className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
-            >
+            <button onClick={addCategory} className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm">
               ＋ Add Category
             </button>
             <button
@@ -308,15 +260,12 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Categories */}
+      {/* Category Bar */}
       {!showSettings && (
-        <div className="flex flex-wrap items-center justify-center gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
+        <div className="flex flex-wrap justify-center gap-2 px-6 py-3 bg-neutral-900/50 border-b border-neutral-800">
           {Object.keys(categories).length === 0 && (
-            <div className="text-neutral-500 text-sm italic">
-              No categories yet — click “＋ Add Category” above to get started.
-            </div>
+            <div className="text-neutral-500 text-sm italic">No categories yet — click “＋ Add Category”.</div>
           )}
-
           {Object.keys(categories).map((cat) => (
             <div key={cat} className="relative">
               <button
@@ -324,15 +273,12 @@ export default function Home() {
                   e.stopPropagation();
                   setActiveCategory((prev) => (prev === cat ? null : cat));
                 }}
-                className={`px-4 py-1.5 rounded-lg font-semibold transition ${
-                  activeCategory === cat
-                    ? "bg-blue-700 text-white"
-                    : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+                className={`px-4 py-1.5 rounded-lg font-semibold ${
+                  activeCategory === cat ? "bg-blue-700 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
                 }`}
               >
                 {cat} ▾
               </button>
-
               {activeCategory === cat && (
                 <div
                   className="absolute left-0 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 min-w-[200px]"
@@ -341,10 +287,10 @@ export default function Home() {
                   {Object.keys(categories[cat] || {}).map((tab) => (
                     <div
                       key={tab}
-                      className="flex justify-between items-center px-3 py-2 hover:bg-neutral-800 cursor-pointer"
-                      onClick={() => {
-                        openTab(cat, tab);
-                      }}
+                      className={`flex justify-between items-center px-3 py-2 hover:bg-neutral-800 cursor-pointer ${
+                        activeTab === tab && activeCatCtx === cat ? "bg-blue-900/40" : ""
+                      }`}
+                      onClick={() => openTab(cat, tab)}
                     >
                       <span>{tab}</span>
                       <button
@@ -352,22 +298,16 @@ export default function Home() {
                           e.stopPropagation();
                           removeTabFromCategory(cat, tab);
                         }}
-                        className="opacity-40 hover:opacity-100 text-red-400 hover:text-red-500 text-sm transition"
+                        className="opacity-40 hover:opacity-100 text-red-400 hover:text-red-500 text-sm"
                       >
                         ✖
                       </button>
                     </div>
                   ))}
-                  <div
-                    className="px-3 py-2 text-blue-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800"
-                    onClick={() => addTabToCategory(cat)}
-                  >
+                  <div className="px-3 py-2 text-blue-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800" onClick={() => addTabToCategory(cat)}>
                     ＋ Add Tab
                   </div>
-                  <div
-                    className="px-3 py-2 text-red-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800"
-                    onClick={() => removeCategory(cat)}
-                  >
+                  <div className="px-3 py-2 text-red-400 hover:bg-neutral-800 cursor-pointer border-t border-neutral-800" onClick={() => removeCategory(cat)}>
                     🗑 Delete Category
                   </div>
                 </div>
@@ -377,28 +317,22 @@ export default function Home() {
         </div>
       )}
 
-      {/* Main */}
+      {/* Main Content */}
       <main className="p-6">
         {showSettings ? (
           <div className="max-w-3xl mx-auto space-y-6">
             <BehaviorSettings settings={settings} setSettings={setSettings} />
           </div>
         ) : activeTab === "Dashboard" ? (
-          <div className="text-center text-blue-300 text-lg mt-10">
-            Welcome to your Dashboard 💎
-          </div>
+          <div className="text-center text-blue-300 text-lg mt-10">Welcome to your Dashboard 💎</div>
         ) : (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-semibold">{activeTab}</h2>
-              <button
-                onClick={addRow}
-                className="bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm"
-              >
+              <button onClick={addRow} className="bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm">
                 ＋ Add Item
               </button>
             </div>
-
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -411,123 +345,65 @@ export default function Home() {
                     <th className="p-2 text-center">Actions</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {(categories[activeCatCtx]?.[activeTab] || []).map((row, i) => {
                     const total = (row.price || 0) * (row.qty || 0);
                     const tint = hexToRgba(row.colorHex || "", 0.5);
-
-                    let fluctDisplay = "—";
-                    let color = "text-neutral-400";
-                    if (typeof row.fluctPct === "number") {
-                      color =
-                        row.fluctPct > 0
-                          ? "text-green-400"
-                          : row.fluctPct < 0
-                          ? "text-red-400"
-                          : "text-neutral-300";
-                      const signed =
-                        row.fluctPct > 0
-                          ? `+${row.fluctPct.toFixed(2)}`
-                          : row.fluctPct.toFixed(2);
-                      fluctDisplay = `${signed} %`;
-                    }
-
                     return (
-                      <tr
-                        key={i}
-                        style={tint ? { backgroundColor: tint } : {}}
-                    className="border-b border-neutral-800 hover:bg-neutral-800/40 transition"
-                  >
-                    <td className="p-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) =>
-                            openColorMenuAtButton(activeCatCtx, activeTab, i, e)
-                          }
-                          className="h-4 w-4 rounded border border-neutral-700"
-                          style={{
-                            backgroundColor: row.colorHex || "transparent",
-                          }}
-                        />
-                        <input
-                          value={row.name || ""}
-                          disabled={row.locked}
-                          onChange={(e) => {
-                            const next = { ...categories };
-                            const rows = [
-                              ...(next[activeCatCtx][activeTab] || []),
-                            ];
-                            rows[i].name = e.target.value;
-                            next[activeCatCtx][activeTab] = rows;
-                            setCategories(next);
-                            localStorage.setItem(
-                              "cs2-categories",
-                              JSON.stringify(next)
-                            );
-                          }}
-                          placeholder="Item name"
-                          className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 w-full"
-                        />
-                      </div>
-                    </td>
-                    <td className="p-2 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            const next = { ...categories };
-                            const rows = [
-                              ...(next[activeCatCtx][activeTab] || []),
-                            ];
-                            rows[i].qty = Math.max(
-                              0,
-                              (rows[i].qty || 0) - 1
-                            );
-                            next[activeCatCtx][activeTab] = rows;
-                            setCategories(next);
-                            localStorage.setItem(
-                              "cs2-categories",
-                              JSON.stringify(next)
-                            );
-                          }}
-                          className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
-                        >
-                          −
-                        </button>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={row.qty ?? 1}
-                          onChange={(e) => {
-                            if (row.locked) return;
-                            const val = e.target.value.replace(/\D/g, "");
-                            const next = { ...categories };
-                            const rows = [
-                              ...(next[activeCatCtx][activeTab] || []),
-                            ];
+                      <tr key={i} style={tint ? { backgroundColor: tint } : {}} className="border-b border-neutral-800 hover:bg-neutral-800/40 transition">
+                        <td className="p-2">
+                          <div className="flex items-center gap-2">
+                            <button onClick={(e) => openColorMenuAtButton(activeCatCtx, activeTab, i, e)} className="h-4 w-4 rounded border border-neutral-700" style={{ backgroundColor: row.colorHex || "transparent" }} />
+                            <input
+                              value={row.name || ""}
+                              disabled={row.locked}
+                              onChange={(e) => {
+                                const next = { ...categories };
+                                const rows = [...(next[activeCatCtx][activeTab] || [])];
+                                rows[i].name = e.target.value;
+                                next[activeCatCtx][activeTab] = rows;
+                                setCategories(next);
+                              }}
+                              placeholder="Item name"
+                              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 w-full"
+                            />
+                          </div>
+                        </td>
+                        <td className="p-2 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => {
+                                const next = { ...categories };
+                                const rows = [...(next[activeCatCtx][activeTab] || [])];
+                                rows[i].qty = Math.max(0, (rows[i].qty || 0) - 1);
+                                next[activeCatCtx][activeTab] = rows;
+                                setCategories(next);
+                              }}
+                              className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
+                            >
+                              −
+                            </button>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={row.qty ?? 1}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const next = { ...categories };
+                            const rows = [...(next[activeCatCtx][activeTab] || [])];
                             rows[i].qty = Number(val);
                             next[activeCatCtx][activeTab] = rows;
                             setCategories(next);
-                            localStorage.setItem(
-                              "cs2-categories",
-                              JSON.stringify(next)
-                            );
                           }}
                           className="w-12 text-center bg-neutral-800 text-gray-100 rounded border border-neutral-700"
                         />
                         <button
                           onClick={() => {
                             const next = { ...categories };
-                            const rows = [
-                              ...(next[activeCatCtx][activeTab] || []),
-                            ];
+                            const rows = [...(next[activeCatCtx][activeTab] || [])];
                             rows[i].qty = (rows[i].qty || 0) + 1;
                             next[activeCatCtx][activeTab] = rows;
                             setCategories(next);
-                            localStorage.setItem(
-                              "cs2-categories",
-                              JSON.stringify(next)
-                            );
                           }}
                           className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
                         >
@@ -535,32 +411,12 @@ export default function Home() {
                         </button>
                       </div>
                     </td>
-
-                    <td className="p-2 text-center text-green-400">
-                      {fmtMoney(row.price || 0)}
-                    </td>
-
-                    <td className={`p-2 text-center ${color}`}>
-                      {fluctDisplay}
-                    </td>
-
-                    <td className="p-2 text-center text-blue-300">
-                      {fmtMoney(total)}
-                    </td>
-
+                    <td className="p-2 text-center text-green-400">{fmtMoney(row.price || 0)}</td>
+                    <td className="p-2 text-center text-neutral-400">—</td>
+                    <td className="p-2 text-center text-blue-300">{fmtMoney(total)}</td>
                     <td className="p-2 text-center">
-                      <button
-                        onClick={() => toggleLockRow(i)}
-                        className="text-neutral-300 hover:text-blue-300"
-                      >
-                        {row.locked ? "🔒" : "🔓"}
-                      </button>
-                      <button
-                        onClick={() => deleteRow(i)}
-                        className="ml-3 text-red-400 hover:text-red-500"
-                      >
-                        🗑
-                      </button>
+                      <button onClick={() => toggleLockRow(i)} className="text-neutral-300 hover:text-blue-300">{row.locked ? "🔒" : "🔓"}</button>
+                      <button onClick={() => deleteRow(i)} className="ml-3 text-red-400 hover:text-red-500">🗑</button>
                     </td>
                   </tr>
                 );
@@ -573,46 +429,16 @@ export default function Home() {
   </main>
 
   {colorMenu.open && (
-    <div
-      id="color-menu-portal"
-      className="fixed z-50"
-      style={{ top: colorMenu.y, left: colorMenu.x }}
-    >
+    <div id="color-menu-portal" className="fixed z-50" style={{ top: colorMenu.y, left: colorMenu.x }}>
       <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
-        <div className="text-xs text-neutral-400 px-1 pb-1">
-          Choose color
-        </div>
-        <button
-          onClick={() =>
-            applyColorToRow(
-              colorMenu.cat,
-              colorMenu.tab,
-              colorMenu.index,
-              ""
-            )
-          }
-          className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-        >
+        <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+        <button onClick={() => applyColorToRow(colorMenu.cat, colorMenu.tab, colorMenu.index, "")} className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm">
           <span className="h-3 w-3 rounded border border-neutral-600 bg-transparent" />
           None
         </button>
         {settings.colors.map((c) => (
-          <button
-            key={c.name + c.hex}
-            onClick={() =>
-              applyColorToRow(
-                colorMenu.cat,
-                colorMenu.tab,
-                colorMenu.index,
-                c.hex
-              )
-            }
-            className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm"
-          >
-            <span
-              className="h-3 w-3 rounded border border-neutral-600"
-              style={{ backgroundColor: c.hex }}
-            />
+          <button key={c.name + c.hex} onClick={() => applyColorToRow(colorMenu.cat, colorMenu.tab, colorMenu.index, c.hex)} className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-neutral-800 text-sm">
+            <span className="h-3 w-3 rounded border border-neutral-600" style={{ backgroundColor: c.hex }} />
             {c.name}
           </button>
         ))}
@@ -620,3 +446,5 @@ export default function Home() {
     </div>
   )}
 </div>
+);
+}
