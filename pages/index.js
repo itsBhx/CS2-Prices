@@ -570,16 +570,20 @@ export default function Home() {
     ＋ Add Folder
   </button>
 
-  <button
-    onClick={() => {
-      setShowSettings((s) => !s);
-      setActiveTab("Dashboard");
-    }}
-    className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 hover:text-orange-400 transition-all border border-neutral-700 hover:border-orange-500"
-    title="Settings"
-  >
-    ⚙️
-  </button>
+<button
+  onClick={() => {
+    setShowSettings((s) => !s);
+    setActiveTab("Dashboard");
+  }}
+  className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-all border border-neutral-700 hover:border-orange-500 flex items-center justify-center"
+  title="Settings"
+>
+  <img
+    src="/settings.svg"
+    alt="Settings"
+    className="w-5 h-5 opacity-80 group-hover:opacity-100 transition-all"
+  />
+</button>
 </div>
         </div>
       </header>
@@ -682,7 +686,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                           }}
                           className="text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
                         >
-                          🗑 Delete Folder
+                          <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -902,7 +906,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                       }
                       className="text-red-400 hover:text-red-500 text-sm"
                     >
-                      🗑
+                      <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
@@ -1093,7 +1097,11 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                             className="text-neutral-300 hover:text-orange-400"
                             title="Lock row"
                           >
-                            {row.locked ? "🔒" : "🔓"}
+                            {row.locked ? (
+  <img src="/lock.svg" alt="Locked" className="w-4 h-4" />
+) : (
+  <img src="/unlock.svg" alt="Unlocked" className="w-4 h-4" />
+)}
                           </button>
                           <button
                             onClick={() => {
@@ -1105,7 +1113,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                             className="ml-3 text-red-400 hover:text-red-500"
                             title="Delete row"
                           >
-                            🗑
+                            <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
                           </button>
                         </td>
                       </tr>
