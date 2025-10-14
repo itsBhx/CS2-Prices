@@ -1016,30 +1016,30 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
   />
 
   {/* Steam Market popup button */}
-  {row.name && row.name.trim() !== "" && (
-    <button
-      onClick={() => {
-        const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(row.name.trim())}`;
-        window.open(url, "_blank", "noopener,noreferrer,width=1200,height=800");
-      }}
-      className="ml-1 px-2 py-1 text-sm rounded-md bg-neutral-800 hover:bg-neutral-700 text-orange-400 hover:text-orange-300 border border-neutral-700 hover:border-orange-500 transition-all"
-      title="Open on Steam Market"
+{row.name && row.name.trim() !== "" && (
+  <button
+    onClick={() => {
+      const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(row.name.trim())}`;
+      window.open(url, "_blank", "noopener,noreferrer,width=1200,height=800");
+    }}
+    className="ml-1 p-2 rounded-md bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500 transition-all flex items-center justify-center"
+    title="Open on Steam Market"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="w-4 h-4 text-orange-400"
     >
-      <svg
-  xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  strokeWidth="2"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-  className="w-4 h-4 text-orange-400"
->
-  <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
-  <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
-</svg>
-    </button>
-  )}
+      <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
+      <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
+    </svg>
+  </button>
+)}
 </div>
                         </td>
 
