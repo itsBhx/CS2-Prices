@@ -423,7 +423,7 @@ export default function Home() {
         <div className="flex justify-end mt-6">
 <button
   onClick={handleSave}
-  className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+  className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
 >
   Save Changes
 </button>
@@ -592,17 +592,17 @@ export default function Home() {
             if (typeof t === "object" && t.folder) {
               return (
                 <div key={`folder-${t.folder}-${idx}`} className="relative" data-folder>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation(); // prevent global body click from firing
-                      toggleFolder(t.folder);
-                    }}
-                    className={`flex items-center px-3 py-2 rounded-lg cursor-pointer transition ${
-                      t.open
-                        ? "bg-blue-800 shadow-md shadow-black/30"
-                        : "bg-neutral-800 hover:bg-neutral-700"
-                    }`}
-                  >
+<div
+  onClick={(e) => {
+    e.stopPropagation();
+    toggleFolder(t.folder);
+  }}
+  className={`flex items-center px-3 py-2 rounded-lg cursor-pointer font-semibold tracking-wide transition-all duration-300 ${
+    t.open
+      ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
+      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
+  }`}
+>
                     <span className="mr-1 font-medium">{t.folder}</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -632,9 +632,11 @@ export default function Home() {
                             <div
                               key={`sub-${subName}-${i}`}
                               onClick={() => setActiveTab(subName)}
-                              className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-pointer transition ${
-                                active ? "bg-blue-700 text-white" : "hover:bg-neutral-700 text-neutral-300"
-                              }`}
+className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-pointer transition-all duration-200 ${
+  active
+    ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white"
+    : "hover:bg-neutral-800 text-neutral-300 hover:text-orange-400"
+}`}
                             >
                               {/* left: icon + name */}
                               <div className="flex items-center gap-2">
@@ -696,13 +698,15 @@ export default function Home() {
             const isActive = activeTab === name;
 
             return (
-              <div
-                key={`tab-${name}-${idx}`}
-                onClick={() => setActiveTab(name)}
-                className={`relative px-3 py-2 rounded-lg cursor-pointer transition flex items-center gap-2 ${
-                  isActive ? "bg-blue-800 shadow-md shadow-black/30" : "bg-neutral-800 hover:bg-neutral-700"
-                }`}
-              >
+<div
+  key={`tab-${name}-${idx}`}
+  onClick={() => setActiveTab(name)}
+  className={`relative px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 font-semibold tracking-wide transition-all duration-300 ${
+    isActive
+      ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
+      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
+  }`}
+>
                 {img && (
   <img
     src={img}
