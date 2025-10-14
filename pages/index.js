@@ -647,21 +647,48 @@ const applyColorToRow = (tab, i, hex) => {
               </div>
             </div>
 
-            <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 shadow">
-              {tabs.filter((t) => t !== "Dashboard").map((t) => (
-                <div
-                  key={t}
-                  className="flex justify-between py-2 border-b border-neutral-800 last:border-0"
-                >
-                  <span>{t}</span>
-                  <span className="text-green-400">{fmtMoney(totals[t] || 0)}€</span>
-                </div>
-              ))}
-              <div className="flex justify-between mt-4 text-lg font-bold">
-                <span>Total Inventory</span>
-                <span className="text-blue-300">{fmtMoney(grandTotal)}€</span>
-              </div>
+<div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 shadow">
+  {tabs.map((t, idx) => {
+    // Skip the main Dashboard entry
+    if (t === "Dashboard") return null;
+
+    // If it's a folder, show its sub-tabs
+    if (typeof t === "object") {
+      return (
+        <div key={idx}>
+          <div className="text-neutral-300 font-semibold mb-1">
+            📁 {t.folder}
+          </div>
+          {t.tabs.map((sub) => (
+            <div
+              key={sub}
+              className="flex justify-between py-1 pl-4 border-b border-neutral-800 last:border-0"
+            >
+              <span>{sub}</span>
+              <span className="text-green-400">{fmtMoney(totals[sub] || 0)}€</span>
             </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Normal tab
+    return (
+      <div
+        key={t}
+        className="flex justify-between py-2 border-b border-neutral-800 last:border-0"
+      >
+        <span>{t}</span>
+        <span className="text-green-400">{fmtMoney(totals[t] || 0)}€</span>
+      </div>
+    );
+  })}
+
+  <div className="flex justify-between mt-4 text-lg font-bold">
+    <span>Total Inventory</span>
+    <span className="text-blue-300">{fmtMoney(grandTotal)}€</span>
+  </div>
+</div>
           </div>
         )}
 
