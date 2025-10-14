@@ -1014,33 +1014,24 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-orange-500 outline-none flex-1"
     />
 
-    {/* Steam Market icon (link) */}
-    {row.name && row.name.trim() !== "" && (
-      <a
-        href={`https://steamcommunity.com/market/listings/730/${encodeURIComponent(
-          row.name.trim()
-        )}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center text-orange-400 hover:text-orange-300 transition-transform hover:scale-110"
-        title="Open on Steam Market"
-      >
-        {/* SVG from svgrepo.com/svg/535483/link */}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-4 h-4"
-        >
-          <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
-          <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
-        </svg>
-      </a>
-    )}
+{/* Steam Market icon (link) */}
+{row.name && row.name.trim() !== "" && (
+  <a
+    href={`https://steamcommunity.com/market/listings/730/${encodeURIComponent(
+      row.name.trim()
+    )}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center justify-center text-orange-400 hover:scale-110 transition-transform"
+    title="Open on Steam Market"
+  >
+    <img
+      src="/link.svg"
+      alt="Steam Market link"
+      className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+    />
+  </a>
+)}
   </div>
 </td>
 
