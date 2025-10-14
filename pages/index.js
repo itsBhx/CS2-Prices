@@ -697,7 +697,7 @@ useEffect(() => {
       return (
         <div key={idx}>
           <div className="text-neutral-300 font-semibold mb-1">
-            📁 {t.folder}
+            {t.folder}
           </div>
           {t.tabs.map((sub) => (
             <div
