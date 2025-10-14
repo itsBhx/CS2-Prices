@@ -507,19 +507,16 @@ await sleep(intervalMs);
   }, [tabs.length, settings.refreshMinutes]);
 
 function BehaviorSettings({ settings, setSettings }) {
-  const [pendingSettings, setPendingSettings] = useState(settings);
-
-  // only initialize once (when first opened)
-  useEffect(() => {
-    if (!pendingSettings || Object.keys(pendingSettings).length === 0) {
-      setPendingSettings(settings);
-    }
-  }, []); // 👈 empty dependency list means it won’t reset every keystroke
+  const [snapshotTime, setSnapshotTime] = useState(settings.snapshotTimeHHMM);
+  const [refreshMinutes, setRefreshMinutes] = useState(settings.refreshMinutes);
 
   const handleSave = () => {
-    setSettings(pendingSettings);
-    setShowSettings(false);
-    console.log("✅ Settings saved:", pendingSettings);
+    setSettings((prev) => ({
+      ...prev,
+      snapshotTimeHHMM: snapshotTime,
+      refreshMinutes: Number(refreshMinutes),
+    }));
+    console.log("✅ Settings saved:", { snapshotTime, refreshMinutes });
   };
 
   return (
@@ -533,13 +530,8 @@ function BehaviorSettings({ settings, setSettings }) {
           </label>
           <input
             type="time"
-            value={pendingSettings.snapshotTimeHHMM}
-            onChange={(e) =>
-              setPendingSettings({
-                ...pendingSettings,
-                snapshotTimeHHMM: e.target.value,
-              })
-            }
+            value={snapshotTime}
+            onChange={(e) => setSnapshotTime(e.target.value)}
             className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
           />
         </div>
@@ -552,13 +544,8 @@ function BehaviorSettings({ settings, setSettings }) {
             type="number"
             min="1"
             step="1"
-            value={pendingSettings.refreshMinutes}
-            onChange={(e) =>
-              setPendingSettings({
-                ...pendingSettings,
-                refreshMinutes: Number(e.target.value),
-              })
-            }
+            value={refreshMinutes}
+            onChange={(e) => setRefreshMinutes(e.target.value)}
             className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
           />
         </div>
