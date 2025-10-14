@@ -670,7 +670,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                             e.stopPropagation();
                             addTabToFolder(t.folder);
                           }}
-                          className="text-left w-full px-3 py-1.5 text-sm text-blue-400 hover:bg-neutral-800 rounded-b-lg"
+                          className="text-left w-full px-3 py-1.5 text-sm text-orange-400 hover:bg-neutral-800 rounded-b-lg"
                         >
                           ＋ Add Tab
                         </button>
