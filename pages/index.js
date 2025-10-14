@@ -1016,18 +1016,12 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
   />
 
   {/* Steam Market popup button */}
-{row.name && row.name.trim() !== "" && (
 <button
-  onClick={() => {
-    const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(row.name.trim())}`;
-    window.open(url, "_blank", "noopener,noreferrer,width=1200,height=800");
-  }}
-  className="ml-1 p-2 rounded-md bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500 transition-all flex items-center justify-center group"
-  title="Open on Steam Market"
+  onClick={() => alert("clicked")}
+  className="ml-1 p-2 bg-red-600 text-white rounded z-50"
 >
-TEST
+  TEST
 </button>
-)}
 </div>
                         </td>
 
