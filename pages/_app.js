@@ -10,7 +10,7 @@ export default function App({ Component, pageProps }) {
           name="description"
           content="Track your CS2 investments — live Steam prices, stickers, cases and portfolio value."
         />
-        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="icon" href="/favicon.png" type="image/png" sizes="512x512" />
       </Head>
       <Component {...pageProps} />
     </>
