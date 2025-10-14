@@ -451,6 +451,10 @@ const applyColorToRow = (tab, i, hex) => {
 /* -------------------------- Close folders on outside click -------------------------- */
 useEffect(() => {
   const handleBodyClick = (e) => {
+    // Ignore clicks directly inside folder elements
+    if (e.target.closest("[data-folder]")) return;
+
+    // Close all open folders
     setTabs((prev) =>
       prev.map((t) =>
         typeof t === "object" && t.open ? { ...t, open: false } : t
@@ -567,9 +571,12 @@ useEffect(() => {
 
       // Folder case (object)
       return (
-        <div key={idx} className="relative">
-          <div
-            onClick={() => toggleFolder(t.folder)}
+        <div key={idx} className="relative" data-folder>
+<div
+  onClick={(e) => {
+    e.stopPropagation(); // prevent global body click from firing
+    toggleFolder(t.folder);
+  }}
             className={`flex items-center px-4 py-2 rounded-lg cursor-pointer transition ${
               t.open
                 ? "bg-blue-800 shadow-md shadow-black/30"
