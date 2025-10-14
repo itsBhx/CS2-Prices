@@ -679,15 +679,16 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                           ＋ Add Tab
                         </button>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeTabOrFolder(t);
-                          }}
-                          className="text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
-                        >
-                          <img src="/trash.svg" alt="Delete" className="w-4 h-4" /> Delete Folder
-                        </button>
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    removeTabOrFolder(t);
+  }}
+  className="flex items-center gap-2 text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
+>
+  <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
+  <span>Delete Folder</span>
+</button>
                       </div>
                     </div>
                   )}
@@ -1097,10 +1098,18 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                             className="text-neutral-300 hover:text-orange-400"
                             title="Lock row"
                           >
-                            {row.locked ? (
-  <img src="/lock.svg" alt="Locked" className="w-4 h-4" />
+{row.locked ? (
+  <img
+    src="/lock.svg"
+    alt="Locked"
+    className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+  />
 ) : (
-  <img src="/unlock.svg" alt="Unlocked" className="w-4 h-4" />
+  <img
+    src="/unlock.svg"
+    alt="Unlocked"
+    className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+  />
 )}
                           </button>
                           <button
@@ -1113,7 +1122,11 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                             className="ml-3 text-red-400 hover:text-red-500"
                             title="Delete row"
                           >
-                            <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
+                            <img
+  src="/trash.svg"
+  alt="Delete"
+  className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+/>
                           </button>
                         </td>
                       </tr>
