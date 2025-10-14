@@ -506,70 +506,75 @@ await sleep(intervalMs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabs.length, settings.refreshMinutes]);
 
-  /* -------------------------- Behavior Settings Component -------------------------- */
-  function BehaviorSettings({ settings, setSettings }) {
-    const [pendingSettings, setPendingSettings] = useState(settings);
+function BehaviorSettings({ settings, setSettings }) {
+  const [pendingSettings, setPendingSettings] = useState(settings);
 
-    useEffect(() => {
-      setPendingSettings(settings); // sync when reopening
-    }, [settings]);
+  // only initialize once (when first opened)
+  useEffect(() => {
+    if (!pendingSettings || Object.keys(pendingSettings).length === 0) {
+      setPendingSettings(settings);
+    }
+  }, []); // 👈 empty dependency list means it won’t reset every keystroke
 
-    const handleSave = () => {
-      setSettings(pendingSettings);
-      console.log("✅ Settings saved:", pendingSettings);
-    };
+  const handleSave = () => {
+    setSettings(pendingSettings);
+    setShowSettings(false);
+    console.log("✅ Settings saved:", pendingSettings);
+  };
 
-    return (
-      <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-        <h2 className="text-xl font-semibold mb-4">Behavior</h2>
+  return (
+    <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+      <h2 className="text-xl font-semibold mb-4">Behavior</h2>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Snapshot time (WEST)
-            </label>
-            <input
-              type="time"
-              value={pendingSettings.snapshotTimeHHMM}
-              onChange={(e) =>
-                setPendingSettings({
-                  ...pendingSettings,
-                  snapshotTimeHHMM: e.target.value,
-                })
-              }
-              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-neutral-400 mb-1">
-              Auto refresh (min)
-            </label>
-            <input
-              type="number"
-              value={pendingSettings.refreshMinutes}
-              onChange={(e) =>
-                setPendingSettings({
-                  ...pendingSettings,
-                  refreshMinutes: Number(e.target.value),
-                })
-              }
-              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-            />
-          </div>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm text-neutral-400 mb-1">
+            Snapshot time (WEST)
+          </label>
+          <input
+            type="time"
+            value={pendingSettings.snapshotTimeHHMM}
+            onChange={(e) =>
+              setPendingSettings({
+                ...pendingSettings,
+                snapshotTimeHHMM: e.target.value,
+              })
+            }
+            className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+          />
         </div>
 
-        <div className="flex justify-end mt-6">
-<button
-  onClick={handleSave}
-  className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
->
-  Save Changes
-</button>
+        <div>
+          <label className="block text-sm text-neutral-400 mb-1">
+            Auto refresh (min)
+          </label>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={pendingSettings.refreshMinutes}
+            onChange={(e) =>
+              setPendingSettings({
+                ...pendingSettings,
+                refreshMinutes: Number(e.target.value),
+              })
+            }
+            className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+          />
         </div>
-      </section>
-    );
-  }
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={handleSave}
+          className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+        >
+          Save Changes
+        </button>
+      </div>
+    </section>
+  );
+}
 
   /* ------------------------------- Color menu ------------------------------- */
   const openColorMenuAtButton = (tab, i, e) => {
