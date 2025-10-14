@@ -1025,19 +1025,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
   className="ml-1 p-2 rounded-md bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500 transition-all flex items-center justify-center group"
   title="Open on Steam Market"
 >
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="#ff8c00"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-4 h-4 group-hover:scale-110 group-hover:drop-shadow-[0_0_4px_#ff8c00] transition-all"
-  >
-    <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
-    <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
-  </svg>
+TEST
 </button>
 )}
 </div>
