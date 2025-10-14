@@ -639,10 +639,9 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen text-orange-50 font-sans bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
-<header className="sticky top-0 z-50 h-[80px] px-6 py-4 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md">
+<header className="sticky top-0 z-50 px-6 py-4 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md shadow-[0_4px_8px_rgba(0,0,0,0.25)]">
   <div className="grid grid-cols-3 items-center">
-    
-    {/* LEFT: Title + timestamp + status */}
+    {/* LEFT: Logo + info */}
     <div className="justify-self-start flex flex-col">
       <div className="flex items-center gap-3">
         <img
@@ -655,20 +654,16 @@ useEffect(() => {
         </h1>
       </div>
 
-{syncMsg && (
-  <div className="mt-1 text-xs text-neutral-300">
-    {syncMsg}
-  </div>
-)}
+      {syncMsg && (
+        <div className="mt-1 text-xs text-neutral-300">{syncMsg}</div>
+      )}
 
-      {/* Last updated */}
       <div className="mt-1 text-xs text-neutral-400">
         {lastUpdatedAt
           ? `Last updated at ${lastUpdatedAt} WEST`
           : "Waiting for first auto refresh…"}
       </div>
 
-      {/* API + Loading Status */}
       <div className="h-[18px] flex items-center gap-2 mt-1 text-xs text-neutral-400 transition-all duration-500">
         {isLoading ? (
           <div className="flex items-center gap-1 text-orange-400">
@@ -727,7 +722,7 @@ useEffect(() => {
       </button>
     </div>
 
-    {/* RIGHT: Add buttons + settings */}
+    {/* RIGHT: Add + Folder + Settings */}
     <div className="justify-self-end flex items-center gap-3">
       <button
         onClick={addTab}
