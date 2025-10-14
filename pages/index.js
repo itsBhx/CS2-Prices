@@ -149,6 +149,31 @@ const removeTabOrFolder = (target) => {
     return;
   }
 
+  // Remove a sub-tab inside a folder (and its data)
+const removeSubTab = (folderName, subName) => {
+  if (!confirm(`Delete tab "${subName}" from "${folderName}"?`)) return;
+
+  // remove from folder.t.tabs
+  setTabs(prev =>
+    prev.map(t => {
+      if (typeof t === "object" && t.folder === folderName) {
+        return { ...t, tabs: t.tabs.filter(n => n !== subName) };
+      }
+      return t;
+    })
+  );
+
+  // remove its data
+  setData(prev => {
+    const next = { ...prev };
+    delete next[subName];
+    return next;
+  });
+
+  // if the deleted subTab was active, bounce to Dashboard
+  setActiveTab(curr => (curr === subName ? "Dashboard" : curr));
+};
+
   // Prevent deleting folder with tabs inside
   if (target.tabs && target.tabs.length > 0) {
     alert(
