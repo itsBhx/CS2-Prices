@@ -626,16 +626,14 @@ export default function Home() {
                             >
                               {/* left: icon + name */}
                               <div className="flex items-center gap-2">
-                                {subImg ? (
-                                  <img
-                                    src={subImg}
-                                    alt=""
-                                    className="w-[50px] h-[50px] object-cover rounded-md border border-neutral-700"
-                                  />
-                                ) : (
-                                  <div className="w-[50px] h-[50px] rounded-md bg-neutral-700/40 border border-neutral-700" />
-                                )}
-                                <span>{subName}</span>
+                                {subImg && (
+  <img
+    src={subImg}
+    alt=""
+    className="w-[28px] h-[28px] object-contain mr-2"
+  />
+)}
+<span>{subName}</span>
                               </div>
 
                               {/* right: delete */}
@@ -693,17 +691,14 @@ export default function Home() {
                   isActive ? "bg-blue-800 shadow-md shadow-black/30" : "bg-neutral-800 hover:bg-neutral-700"
                 }`}
               >
-                {img ? (
-                  <img
-                    src={img}
-                    alt=""
-                    className="w-[50px] h-[50px] object-cover rounded-md border border-neutral-700"
-                  />
-                ) : (
-                  <div className="w-[50px] h-[50px] rounded-md bg-neutral-700/40 border border-neutral-700" />
-                )}
-
-                <span>{name}</span>
+                {img && (
+  <img
+    src={img}
+    alt=""
+    className="w-[28px] h-[28px] object-contain mr-2"
+  />
+)}
+<span>{name}</span>
 
                 <button
                   onClick={(e) => {
