@@ -132,32 +132,35 @@ const addTabToFolder = (folderName) => {
   setActiveTab(name);
 };
 
-// Toggle folder open/close
+// Toggle folder open/close (and close others)
 const toggleFolder = (folderName) =>
   setTabs(prev =>
     prev.map(t =>
-      typeof t === "object" && t.folder === folderName
-        ? { ...t, open: !t.open }
+      typeof t === "object"
+        ? { ...t, open: t.folder === folderName ? !t.open : false }
         : t
     )
   );
 
-// Remove a tab or a folder
+// Remove a tab or a folder (safe delete)
 const removeTabOrFolder = (target) => {
   if (typeof target === "string") {
-    // normal tab removal
     removeTab(target);
     return;
   }
 
-  if (!confirm(`Delete folder "${target.folder}" and all its tabs?`)) return;
-  const namesToRemove = target.tabs;
-  setTabs(prev => prev.filter(t => t !== target));
-  setData(prev => {
-    const next = { ...prev };
-    for (const name of namesToRemove) delete next[name];
-    return next;
-  });
+  // Prevent deleting folder with tabs inside
+  if (target.tabs && target.tabs.length > 0) {
+    alert(
+      `⚠️ You must delete or move all tabs inside "${target.folder}" before deleting the folder.`
+    );
+    return;
+  }
+
+  if (!confirm(`Delete empty folder "${target.folder}"?`)) return;
+
+  // Safe to delete
+  setTabs((prev) => prev.filter((t) => t !== target));
 };
 
   const addRow = () => {
@@ -445,6 +448,20 @@ const applyColorToRow = (tab, i, hex) => {
   closeColorMenu();
 };
 
+/* -------------------------- Close folders on outside click -------------------------- */
+useEffect(() => {
+  const handleBodyClick = (e) => {
+    setTabs((prev) =>
+      prev.map((t) =>
+        typeof t === "object" && t.open ? { ...t, open: false } : t
+      )
+    );
+  };
+
+  document.body.addEventListener("click", handleBodyClick);
+  return () => document.body.removeEventListener("click", handleBodyClick);
+}, []);
+
   /* ------------------------------- Render UI ------------------------------- */
   const dashSnap = snapshots["dashboard"];
   const dashPct =
@@ -576,7 +593,10 @@ const applyColorToRow = (tab, i, hex) => {
 
           {/* Dropdown items */}
           {t.open && (
-            <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20">
+  <div
+    onClick={(e) => e.stopPropagation()}
+    className="absolute top-full left-0 mt-1 min-w-[160px] bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20"
+  >
               <div className="flex flex-col">
                 {t.tabs.map((sub) => (
                   <div
