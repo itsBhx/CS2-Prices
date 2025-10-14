@@ -550,122 +550,123 @@ try {
 
   return (
     <div className="min-h-screen text-orange-50 font-sans bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
-      <header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
-        {/* Perfect 3-column alignment */}
-        <div className="grid grid-cols-3 items-center">
-          {/* LEFT: Title + timestamp */}
-          <div className="justify-self-start">
-            <div className="flex items-center gap-3">
-  <img
-    src="/logo.png"
-    alt="CS2 Prices Logo"
-    className="w-[40px] h-[40px] object-contain"
-  />
-  <h1 className="text-2xl font-extrabold text-orange-400 tracking-wide">
-    CS2 Prices
-  </h1>
-</div>
-            <div className="mt-1 text-xs text-neutral-400">
-  {lastUpdatedAt
-    ? `Last updated at ${lastUpdatedAt} WEST`
-    : "Waiting for first auto refresh…"}
-</div>
-
-{/* API + Loading Status */}
-<div className="flex items-center gap-3 mt-1 text-xs text-neutral-400 transition-all duration-500">
-  {isLoading && (
-    <div className="flex items-center gap-1 text-orange-400">
-      <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
-      <span>Fetching prices…</span>
-    </div>
-  )}
-  {!isLoading && (
-    <div
-      className={`flex items-center gap-1 ${
-        apiStatus === "stable"
-          ? "text-green-400"
-          : apiStatus === "429"
-          ? "text-yellow-400"
-          : "text-red-400"
-      }`}
-    >
-      <div
-        className={`w-3 h-3 rounded-full ${
-          apiStatus === "stable"
-            ? "bg-green-500"
-            : apiStatus === "429"
-            ? "bg-yellow-500"
-            : "bg-red-500"
-        }`}
-      ></div>
-      <span>
-        {apiStatus === "stable"
-          ? "Steam API stable"
-          : apiStatus === "429"
-          ? "Rate limited"
-          : "Steam offline"}
-      </span>
-    </div>
-  )}
-</div>
-
-          {/* CENTER: Main Dashboard button */}
-          <div className="justify-self-center">
-<button
-  onClick={() => {
-    setActiveTab("Dashboard");
-    setShowSettings(false);
-  }}
-  className={`group relative px-8 py-2.5 text-base font-extrabold tracking-wide rounded-full transition-all duration-300
-    ${
-      activeTab === "Dashboard"
-        ? "text-white bg-gradient-to-r from-orange-600 to-orange-500 shadow-[0_0_20px_rgba(255,165,0,0.4)] scale-[1.05]"
-        : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-orange-400 hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(255,165,0,0.3)]"
-    }`}
->
-  <span className="relative z-10">Dashboard</span>
-  {activeTab === "Dashboard" && (
-    <span className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl animate-pulse" />
-  )}
-</button>
-          </div>
-
-          {/* RIGHT: Add + Settings */}
-<div className="justify-self-end flex items-center gap-3">
-  <button
-    onClick={addTab}
-    className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
-    title="Add Tab"
-  >
-    ＋ Add Tab
-  </button>
-
-  <button
-    onClick={addFolder}
-    className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
-    title="Add Folder"
-  >
-    ＋ Add Folder
-  </button>
-
-<button
-  onClick={() => {
-    setShowSettings((s) => !s);
-    setActiveTab("Dashboard");
-  }}
-  className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-all border border-neutral-700 hover:border-orange-500 flex items-center justify-center"
-  title="Settings"
->
-  <img
-    src="/settings.svg"
-    alt="Settings"
-    className="w-5 h-5 opacity-80 group-hover:opacity-100 transition-all"
-  />
-</button>
-</div>
-        </div>
+<header className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
+  <div className="grid grid-cols-3 items-center">
+    
+    {/* LEFT: Title + timestamp + status */}
+    <div className="justify-self-start flex flex-col">
+      <div className="flex items-center gap-3">
+        <img
+          src="/logo.png"
+          alt="CS2 Prices Logo"
+          className="w-[40px] h-[40px] object-contain"
+        />
+        <h1 className="text-2xl font-extrabold text-orange-400 tracking-wide">
+          CS2 Prices
+        </h1>
       </div>
-      </header>
+
+      {/* Last updated */}
+      <div className="mt-1 text-xs text-neutral-400">
+        {lastUpdatedAt
+          ? `Last updated at ${lastUpdatedAt} WEST`
+          : "Waiting for first auto refresh…"}
+      </div>
+
+      {/* API + Loading Status */}
+      <div className="h-[18px] flex items-center gap-2 mt-1 text-xs text-neutral-400 transition-all duration-500">
+        {isLoading ? (
+          <div className="flex items-center gap-1 text-orange-400">
+            <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+            <span>Fetching prices…</span>
+          </div>
+        ) : (
+          <div
+            className={`flex items-center gap-1 ${
+              apiStatus === "stable"
+                ? "text-green-400"
+                : apiStatus === "429"
+                ? "text-yellow-400"
+                : "text-red-400"
+            }`}
+          >
+            <div
+              className={`w-3 h-3 rounded-full ${
+                apiStatus === "stable"
+                  ? "bg-green-500"
+                  : apiStatus === "429"
+                  ? "bg-yellow-500"
+                  : "bg-red-500"
+              }`}
+            ></div>
+            <span>
+              {apiStatus === "stable"
+                ? "Steam API stable"
+                : apiStatus === "429"
+                ? "Rate limited"
+                : "Steam offline"}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* CENTER: Dashboard button */}
+    <div className="justify-self-center">
+      <button
+        onClick={() => {
+          setActiveTab("Dashboard");
+          setShowSettings(false);
+        }}
+        className={`group relative px-8 py-2.5 text-base font-extrabold tracking-wide rounded-full transition-all duration-300
+          ${
+            activeTab === "Dashboard"
+              ? "text-white bg-gradient-to-r from-orange-600 to-orange-500 shadow-[0_0_20px_rgba(255,165,0,0.4)] scale-[1.05]"
+              : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-orange-400 hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(255,165,0,0.3)]"
+          }`}
+      >
+        <span className="relative z-10">Dashboard</span>
+        {activeTab === "Dashboard" && (
+          <span className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl animate-pulse" />
+        )}
+      </button>
+    </div>
+
+    {/* RIGHT: Add buttons + settings */}
+    <div className="justify-self-end flex items-center gap-3">
+      <button
+        onClick={addTab}
+        className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+        title="Add Tab"
+      >
+        ＋ Add Tab
+      </button>
+
+      <button
+        onClick={addFolder}
+        className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+        title="Add Folder"
+      >
+        ＋ Add Folder
+      </button>
+
+      <button
+        onClick={() => {
+          setShowSettings((s) => !s);
+          setActiveTab("Dashboard");
+        }}
+        className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-all border border-neutral-700 hover:border-orange-500 flex items-center justify-center"
+        title="Settings"
+      >
+        <img
+          src="/settings.svg"
+          alt="Settings"
+          className="w-5 h-5 opacity-80 hover:opacity-100 transition-all"
+        />
+      </button>
+    </div>
+  </div>
+</header>
 
       {/* Horizontal Tabs with Folder Dropdowns + 50x50 images */}
       {!showSettings && (
