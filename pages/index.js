@@ -1025,8 +1025,18 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       className="ml-1 px-2 py-1 text-sm rounded-md bg-neutral-800 hover:bg-neutral-700 text-orange-400 hover:text-orange-300 border border-neutral-700 hover:border-orange-500 transition-all"
       title="Open on Steam Market"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className="w-4 h-4 fill-orange-400">
-  <path d="M496 0H16A16 16 0 0 0 0 16v480a16 16 0 0 0 16 16h480a16 16 0 0 0 16-16V16a16 16 0 0 0-16-16zm-36.6 256a203.4 203.4 0 0 1-203.4 203.4A203.4 203.4 0 0 1 52.6 256a203.4 203.4 0 0 1 203.4-203.4A203.4 203.4 0 0 1 459.4 256zM167 276.4l-50.4 24.5a56 56 0 1 0 88 57.7l44.7-89.8a78.7 78.7 0 0 0 49.3-73.4V192h.1a64 64 0 1 0-64 64h.1v.3l-66 20.1zm-29.2 69.3a28.5 28.5 0 1 1 28.5-28.5 28.5 28.5 0 0 1-28.5 28.5zm172.5-138a36.4 36.4 0 1 1 36.4-36.4 36.4 36.4 0 0 1-36.4 36.4z"/>
+      <svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  className="w-4 h-4 text-orange-400"
+>
+  <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
+  <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
 </svg>
     </button>
   )}
