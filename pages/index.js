@@ -991,7 +991,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                       >
 
 <td className="p-2 overflow-visible">
-  <div className="flex items-center gap-2 flex-nowrap overflow-visible relative">
+  <div className="flex items-center gap-2 flex-nowrap overflow-visible">
     {/* Color picker button */}
     <button
       type="button"
@@ -1001,48 +1001,46 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       title="Set color"
     />
 
-    {/* Item name + Steam Market link as a small row group */}
-<div className="flex items-center flex-1 min-w-0 relative">
-  <input
-    value={row.name || ""}
-    disabled={row.locked}
-    onChange={(e) => {
-      const rows = [...(data[activeTab] || [])];
-      rows[i].name = e.target.value;
-      setData({ ...data, [activeTab]: rows });
-    }}
-    placeholder="Item name"
-    className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-orange-500 outline-none w-full"
-  />
-
-  {/* Steam Market popup icon only */}
-  {row.name && row.name.trim() !== "" && (
-    <button
-      onClick={() => {
-        const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(
-          row.name.trim()
-        )}`;
-        window.open(url, "_blank", "noopener,noreferrer,width=1200,height=800");
+    {/* Item name input */}
+    <input
+      value={row.name || ""}
+      disabled={row.locked}
+      onChange={(e) => {
+        const rows = [...(data[activeTab] || [])];
+        rows[i].name = e.target.value;
+        setData({ ...data, [activeTab]: rows });
       }}
-      className="absolute right-2 flex items-center justify-center group"
-      title="Open on Steam Market"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#ff8c00"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 group-hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+      placeholder="Item name"
+      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-orange-500 outline-none flex-1"
+    />
+
+    {/* Steam Market icon (link) */}
+    {row.name && row.name.trim() !== "" && (
+      <a
+        href={`https://steamcommunity.com/market/listings/730/${encodeURIComponent(
+          row.name.trim()
+        )}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center text-orange-400 hover:text-orange-300 transition-transform hover:scale-110"
+        title="Open on Steam Market"
       >
-        <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
-        <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
-      </svg>
-    </button>
-  )}
-</div>
+        {/* SVG from svgrepo.com/svg/535483/link */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-4 h-4"
+        >
+          <path d="M10 13a5 5 0 0 1 7 0l1 1a5 5 0 0 1-7 7l-1-1" />
+          <path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1" />
+        </svg>
+      </a>
+    )}
   </div>
 </td>
 
