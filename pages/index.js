@@ -70,11 +70,6 @@ export default function Home() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [apiStatus, setApiStatus] = useState("stable"); // "stable" | "429" | "down"
   const [isLoading, setIsLoading] = useState(false); // controls spinner visibility
-  // Developer-only: expose debug tools in dev mode
-if (typeof window !== "undefined") {
-  window.__setApiStatus = setApiStatus;
-  window.__setIsLoading = setIsLoading;
-}
   const [colorMenu, setColorMenu] = useState({ open: false, tab: null, index: null, x: 0, y: 0 });
   const refreshTimerRef = useRef([]);
   const isRefreshingRef = useRef(false);
