@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { supabase } from '../lib/supabaseClient'
+
+// persistent id per browser (used as the “owner” key for your data row)
+function getDeviceId() {
+  if (typeof window === 'undefined') return null
+  let id = localStorage.getItem('cs2-device-id')
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem('cs2-device-id', id)
+  }
+  return id
+}
+
 /* ====================== Time (Lisbon / WEST) helpers ====================== */
 const LISBON_TZ = "Europe/Lisbon";
 function formatLisbonHM(date = new Date()) {
@@ -73,6 +86,87 @@ export default function Home() {
   const [colorMenu, setColorMenu] = useState({ open: false, tab: null, index: null, x: 0, y: 0 });
   const refreshTimerRef = useRef([]);
   const isRefreshingRef = useRef(false);
+
+  // Optional: small toast state
+const [syncMsg, setSyncMsg] = useState(null)
+
+async function saveToCloud() {
+  try {
+    const deviceId = getDeviceId()
+    if (!deviceId) throw new Error('No device id')
+
+    const payload = {
+      tabs,
+      data,
+      snapshots,
+      settings,
+      lastUpdatedAt,
+    }
+
+    const { error } = await supabase
+      .from('user_data')
+      .upsert(
+        {
+          device_id: deviceId,
+          blob: payload,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'device_id' } // upsert by device_id
+      )
+
+    if (error) throw error
+    setSyncMsg('✅ Saved to cloud')
+    setTimeout(() => setSyncMsg(null), 3000)
+  } catch (e) {
+    console.error(e)
+    setSyncMsg('❌ Save failed')
+    setTimeout(() => setSyncMsg(null), 3000)
+  }
+}
+
+async function loadFromCloud() {
+  try {
+    const deviceId = getDeviceId()
+    if (!deviceId) throw new Error('No device id')
+
+    const { data: rows, error } = await supabase
+      .from('user_data')
+      .select('blob')
+      .eq('device_id', deviceId)
+      .limit(1)
+
+    if (error) throw error
+    const row = rows?.[0]
+    if (!row?.blob) {
+      setSyncMsg('ℹ️ No cloud data yet')
+      setTimeout(() => setSyncMsg(null), 3000)
+      return
+    }
+
+    const { tabs: T, data: D, snapshots: S, settings: ST, lastUpdatedAt: LU } = row.blob
+
+    // merge into state
+    setTabs(T || [])
+    setData(D || {})
+    setSnapshots(S || {})
+    setSettings(ST || settings)
+    setLastUpdatedAt(LU || null)
+
+    // also update localStorage
+    localStorage.setItem('cs2-tabs', JSON.stringify(T || []))
+    localStorage.setItem('cs2-data', JSON.stringify(D || {}))
+    localStorage.setItem('cs2-snapshots', JSON.stringify(S || {}))
+    localStorage.setItem('cs2-settings', JSON.stringify(ST || settings))
+    if (LU) localStorage.setItem('cs2-lastUpdatedAt', LU)
+
+    setSyncMsg('✅ Loaded from cloud')
+    setTimeout(() => setSyncMsg(null), 3000)
+  } catch (e) {
+    console.error(e)
+    setSyncMsg('❌ Load failed')
+    setTimeout(() => setSyncMsg(null), 3000)
+  }
+}
 
   /* --------------------------- Load / Save localStorage --------------------------- */
   useEffect(() => {
@@ -566,6 +660,12 @@ try {
         </h1>
       </div>
 
+{syncMsg && (
+  <div className="mt-1 text-xs text-neutral-300">
+    {syncMsg}
+  </div>
+)}
+
       {/* Last updated */}
       <div className="mt-1 text-xs text-neutral-400">
         {lastUpdatedAt
@@ -664,6 +764,23 @@ try {
           className="w-5 h-5 opacity-80 hover:opacity-100 transition-all"
         />
       </button>
+
+            <button
+  onClick={loadFromCloud}
+  className="px-3 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500"
+  title="Load from Cloud"
+>
+  Load Cloud
+</button>
+
+<button
+  onClick={saveToCloud}
+  className="px-3 py-2 text-xs rounded-lg bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold shadow-md hover:shadow-orange-500/40"
+  title="Save to Cloud"
+>
+  Save Cloud
+</button>
+
     </div>
   </div>
 </header>
