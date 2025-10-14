@@ -760,7 +760,7 @@ useEffect(() => {
 
       {/* Horizontal Tabs with Folder Dropdowns + 50x50 images */}
       {!showSettings && (
-        <nav className="sticky top-[80px] z-40 flex flex-wrap items-center gap-2 px-6 py-3 bg-neutral-900/70 border-b border-neutral-800 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md">
+        <nav className="sticky top-[100px] z-40 flex flex-wrap items-center gap-2 px-6 py-3 bg-neutral-900/70 border-b border-neutral-800 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md shadow-[0_4px_8px_rgba(0,0,0,0.15)]">
           {tabs.map((t, idx) => {
             // Folder
             if (typeof t === "object" && t.folder) {
