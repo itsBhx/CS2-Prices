@@ -664,6 +664,7 @@ try {
 </button>
 </div>
         </div>
+      </div>
       </header>
 
       {/* Horizontal Tabs with Folder Dropdowns + 50x50 images */}
