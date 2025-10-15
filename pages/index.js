@@ -565,28 +565,51 @@ function BehaviorSettings({ settings, setSettings }) {
 
   /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const menuHeight = 200; // estimated dropdown height
-  const viewportHeight = window.innerHeight;
-
-  // true if there's not enough room below the button
-  const openAbove = rect.bottom + menuHeight > viewportHeight;
-
-  // compute coordinates using scroll position for perfect alignment
+  const trigger = e.currentTarget.getBoundingClientRect();
+  const scrollX = window.scrollX || window.pageXOffset;
   const scrollY = window.scrollY || window.pageYOffset;
-  const y = openAbove
-    ? rect.top + scrollY - menuHeight - 8 // 8px gap
-    : rect.bottom + scrollY + 8;
 
-  const x = rect.left + window.scrollX;
-
+  // Step 1: open menu first (temporary position)
   setColorMenu({
     open: true,
     tab,
     index: i,
-    x,
-    y,
-    openAbove,
+    x: trigger.left + scrollX,
+    y: trigger.bottom + scrollY + 8,
+    openAbove: false,
+  });
+
+  // Step 2: measure real height and reposition correctly
+  requestAnimationFrame(() => {
+    const el = document.getElementById("color-menu-portal");
+    if (!el) return;
+
+    const menuRect = el.getBoundingClientRect();
+    const menuW = menuRect.width;
+    const menuH = menuRect.height;
+
+    let x = trigger.left + scrollX;
+    let y = trigger.bottom + scrollY + 8; // default below
+    let openAbove = false;
+
+    // Flip up if not enough space below
+    if (trigger.bottom + menuH + 8 > window.innerHeight) {
+      y = trigger.top + scrollY - menuH - 8;
+      openAbove = true;
+    }
+
+    // Keep inside viewport horizontally
+    const rightEdge = scrollX + window.innerWidth;
+    if (x + menuW + 8 > rightEdge) x = rightEdge - menuW - 8;
+    if (x < scrollX + 8) x = scrollX + 8;
+
+    // Prevent off-screen top overflow
+    if (y < scrollY + 8) {
+      y = trigger.bottom + scrollY + 8;
+      openAbove = false;
+    }
+
+    setColorMenu((cm) => ({ ...cm, x, y, openAbove }));
   });
 };
 
