@@ -6,6 +6,15 @@ html {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@keyframes appear-up {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes appear-down {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 
 body {
   @apply bg-gray-950 text-gray-100 font-sans;
