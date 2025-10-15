@@ -794,7 +794,12 @@ useEffect(() => {
                   {t.open && (
 <div
   onClick={(e) => e.stopPropagation()}
-  className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 w-fit max-w-[90vw]"
+  className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 inline-block"
+  style={{
+    width: "max-content",
+    whiteSpace: "nowrap",
+    maxWidth: "95vw",
+  }}
 >
                       <div className="flex flex-col py-1">
                         {(t.tabs || []).map((sub, i) => {
@@ -821,7 +826,19 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
     className="w-[28px] h-[28px] object-contain mr-2"
   />
 )}
-<span>{subName}</span>
+<span
+  className="block break-words leading-tight"
+  style={{
+    whiteSpace: "normal",
+    lineClamp: 2,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  }}
+>
+  {subName}
+</span>
                               </div>
 
                               {/* right: delete */}
