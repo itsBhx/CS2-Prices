@@ -566,22 +566,25 @@ function BehaviorSettings({ settings, setSettings }) {
   /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const trigger = e.currentTarget.getBoundingClientRect();
-  const menuEstimatedHeight = 200; // rough max height
-  const gap = 4; // tighter visual spacing
+  const scrollX = window.scrollX || window.pageXOffset;
+  const scrollY = window.scrollY || window.pageYOffset;
 
-  // Detect if we have enough space below (relative to viewport)
+  const menuEstimatedHeight = 200; // dropdown height estimate
+  const gap = 4; // small visual gap
+
+  // Check if there's enough space below
   const hasSpaceBelow = trigger.bottom + menuEstimatedHeight < window.innerHeight;
 
-  // Compute exact coordinates (viewport-based)
-  const x = trigger.left;
-  const y = hasSpaceBelow ? trigger.bottom + gap : trigger.top - menuEstimatedHeight - gap;
+  // Compute actual coordinates (scroll-safe)
+  const x = trigger.left + scrollX;
+  const y = hasSpaceBelow
+    ? trigger.bottom + scrollY + gap
+    : trigger.top + scrollY - menuEstimatedHeight - gap;
 
-  // Save final position instantly — no flicker
   setColorMenu({
     open: true,
     tab,
     index: i,
-    // use viewport coords only (no scrollY!)
     x,
     y,
     openAbove: !hasSpaceBelow,
