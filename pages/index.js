@@ -563,23 +563,18 @@ function BehaviorSettings({ settings, setSettings }) {
   );
 }
 
-  /* ------------------------------- Color menu ------------------------------- */
+/* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const trigger = e.currentTarget.getBoundingClientRect();
-  const scrollX = window.scrollX || window.pageXOffset;
-  const scrollY = window.scrollY || window.pageYOffset;
+  const menuEstimatedHeight = 200; // height in px
+  const gap = 4;
 
-  const menuEstimatedHeight = 200; // dropdown height estimate
-  const gap = 4; // small visual gap
-
-  // Check if there's enough space below
+  // Check if we have room below (relative to viewport)
   const hasSpaceBelow = trigger.bottom + menuEstimatedHeight < window.innerHeight;
 
-  // Compute actual coordinates (scroll-safe)
-  const x = trigger.left + scrollX;
-  const y = hasSpaceBelow
-    ? trigger.bottom + scrollY + gap
-    : trigger.top + scrollY - menuEstimatedHeight - gap;
+  // Because we're using position: fixed, no scroll offset is needed.
+  const x = trigger.left;
+  const y = hasSpaceBelow ? trigger.bottom + gap : trigger.top - menuEstimatedHeight - gap;
 
   setColorMenu({
     open: true,
@@ -591,36 +586,36 @@ const openColorMenuAtButton = (tab, i, e) => {
   });
 };
 
-  const closeColorMenu = () =>
-    setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
+const closeColorMenu = () =>
+  setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
 
-  useEffect(() => {
-    if (!colorMenu.open) return;
+useEffect(() => {
+  if (!colorMenu.open) return;
 
-    const onBodyClick = (e) => {
-      const menuEl = document.getElementById("color-menu-portal");
-      if (!menuEl) return;
-      if (menuEl.contains(e.target)) return; // click inside → ignore
-      closeColorMenu();
-    };
+  const onBodyClick = (e) => {
+    const menuEl = document.getElementById("color-menu-portal");
+    if (!menuEl) return;
+    if (menuEl.contains(e.target)) return; // click inside → ignore
+    closeColorMenu();
+  };
 
-    const onScroll = () => closeColorMenu();
-    const onResize = () => closeColorMenu();
+  const onScroll = () => closeColorMenu();
+  const onResize = () => closeColorMenu();
 
-    // delay listener to avoid capturing the opening click
-    const t = setTimeout(() => {
-      document.body.addEventListener("click", onBodyClick);
-      window.addEventListener("scroll", onScroll, true);
-      window.addEventListener("resize", onResize);
-    }, 50);
+  // delay listener to avoid capturing the opening click
+  const t = setTimeout(() => {
+    document.body.addEventListener("click", onBodyClick);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+  }, 50);
 
-    return () => {
-      clearTimeout(t);
-      document.body.removeEventListener("click", onBodyClick);
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [colorMenu.open]);
+  return () => {
+    clearTimeout(t);
+    document.body.removeEventListener("click", onBodyClick);
+    window.removeEventListener("scroll", onScroll, true);
+    window.removeEventListener("resize", onResize);
+  };
+}, [colorMenu.open]);
 
   /* -------------------------- Close folders on outside click -------------------------- */
 useEffect(() => {
