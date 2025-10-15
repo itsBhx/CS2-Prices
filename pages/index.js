@@ -1365,11 +1365,15 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
 
       {/* Color picker menu portal */}
       {colorMenu.open && (
-        <div
-          id="color-menu-portal"
-          className="fixed z-50"
-          style={{ top: colorMenu.y, left: colorMenu.x }}
-        >
+<div
+  id="color-menu-portal"
+  className={`fixed z-50 ${colorMenu.openAbove ? "origin-bottom" : "origin-top"}`}
+  style={{
+    top: colorMenu.y,
+    left: colorMenu.x,
+    transformOrigin: colorMenu.openAbove ? "bottom left" : "top left",
+  }}
+>
           <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
             <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
             <button
