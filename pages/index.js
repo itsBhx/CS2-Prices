@@ -1383,9 +1383,9 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       {colorMenu.open && (
 <div
   id="color-menu-portal"
-className={`fixed z-50 transition-all duration-150 ease-out transform ${
-  colorMenu.openAbove ? "origin-bottom" : "origin-top"
-}`}
+  className={`fixed z-50 transition-all duration-150 ease-out transform scale-100 opacity-100 ${
+    colorMenu.openAbove ? "origin-bottom" : "origin-top"
+  }`}
   style={{
     top: colorMenu.y,
     left: colorMenu.x,
