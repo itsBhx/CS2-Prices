@@ -1383,13 +1383,14 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       {colorMenu.open && (
 <div
   id="color-menu-portal"
-  className={`fixed z-50 transition-all duration-150 ease-out transform scale-100 opacity-100 ${
-    colorMenu.openAbove ? "origin-bottom" : "origin-top"
+  className={`fixed z-50 transition-transform duration-150 ease-out transform ${
+    colorMenu.openAbove
+      ? "origin-bottom translate-y-1 animate-[appear-up_0.15s_ease-out]"
+      : "origin-top -translate-y-1 animate-[appear-down_0.15s_ease-out]"
   }`}
   style={{
     top: colorMenu.y,
     left: colorMenu.x,
-    transformOrigin: colorMenu.openAbove ? "bottom left" : "top left",
   }}
 >
   <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
