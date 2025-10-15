@@ -566,54 +566,25 @@ function BehaviorSettings({ settings, setSettings }) {
   /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const trigger = e.currentTarget.getBoundingClientRect();
-  const scrollX = window.scrollX || window.pageXOffset;
-  const scrollY = window.scrollY || window.pageYOffset;
+  const menuEstimatedHeight = 200; // rough max height
+  const gap = 4; // tighter visual spacing
 
-  // Step 1: create a temp hidden menu to measure before showing
-  const temp = document.createElement("div");
-  temp.id = "temp-color-menu";
-  temp.style.position = "fixed";
-  temp.style.visibility = "hidden";
-  temp.style.pointerEvents = "none";
-  temp.style.left = "0";
-  temp.style.top = "0";
-  temp.style.zIndex = "-1";
-  document.body.appendChild(temp);
+  // Detect if we have enough space below (relative to viewport)
+  const hasSpaceBelow = trigger.bottom + menuEstimatedHeight < window.innerHeight;
 
-  // Fill it with your menu content so it has real height
-  temp.innerHTML = `
-    <div class="bg-neutral-900 border border-neutral-700 rounded-md p-2 min-w-[180px]">
-      <div class="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
-    </div>
-  `;
-  const menuH = temp.getBoundingClientRect().height;
-  const menuW = 180;
-  temp.remove();
+  // Compute exact coordinates (viewport-based)
+  const x = trigger.left;
+  const y = hasSpaceBelow ? trigger.bottom + gap : trigger.top - menuEstimatedHeight - gap;
 
-  // Step 2: determine best position BEFORE showing menu
-  let openAbove = false;
-  let x = trigger.left + scrollX;
-  let y = trigger.bottom + scrollY + 6;
-
-  // if not enough space below → flip up
-  if (trigger.bottom + menuH + 6 > window.innerHeight) {
-    y = trigger.top + scrollY - menuH - 6;
-    openAbove = true;
-  }
-
-  // ensure horizontally inside viewport
-  const rightEdge = scrollX + window.innerWidth;
-  if (x + menuW + 8 > rightEdge) x = rightEdge - menuW - 8;
-  if (x < scrollX + 8) x = scrollX + 8;
-
-  // Step 3: open at final coords (no reflow flicker)
+  // Save final position instantly — no flicker
   setColorMenu({
     open: true,
     tab,
     index: i,
+    // use viewport coords only (no scrollY!)
     x,
     y,
-    openAbove,
+    openAbove: !hasSpaceBelow,
   });
 };
 
@@ -1394,7 +1365,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       {colorMenu.open && (
 <div
   id="color-menu-portal"
-  className={`fixed z-50 transition-all duration-150 ease-out ${
+  className={`fixed z-50 transition-transform duration-150 ease-out ${
     colorMenu.openAbove ? "origin-bottom" : "origin-top"
   }`}
   style={{
@@ -1403,8 +1374,8 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
     transformOrigin: colorMenu.openAbove ? "bottom left" : "top left",
   }}
 >
-          <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
-            <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+  <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
+    <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
             <button
               onClick={() => {
                 const rows = [...(data[colorMenu.tab] || [])];
