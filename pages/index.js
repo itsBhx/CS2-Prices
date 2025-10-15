@@ -564,25 +564,45 @@ function BehaviorSettings({ settings, setSettings }) {
 }
 
 /* ------------------------------- Color menu ------------------------------- */
+/* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const trigger = e.currentTarget.getBoundingClientRect();
-  const menuEstimatedHeight = 200; // height in px
   const gap = 4;
 
-  // Check if we have room below (relative to viewport)
-  const hasSpaceBelow = trigger.bottom + menuEstimatedHeight < window.innerHeight;
-
-  // Because we're using position: fixed, no scroll offset is needed.
-  const x = trigger.left;
-  const y = hasSpaceBelow ? trigger.bottom + gap : trigger.top - menuEstimatedHeight - gap;
-
+  // Step 1: open immediately below while we measure
   setColorMenu({
     open: true,
     tab,
     index: i,
-    x,
-    y,
-    openAbove: !hasSpaceBelow,
+    x: trigger.left,
+    y: trigger.bottom + gap,
+    openAbove: false,
+  });
+
+  // Step 2: on next frame, measure the actual menu height and reposition if needed
+  requestAnimationFrame(() => {
+    const menuEl = document.getElementById("color-menu-portal");
+    if (!menuEl) return;
+
+    const menuHeight = menuEl.offsetHeight || 200;
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - trigger.bottom;
+    const spaceAbove = trigger.top;
+
+    let y = trigger.bottom + gap;
+    let openAbove = false;
+
+    if (menuHeight > spaceBelow && spaceAbove > spaceBelow) {
+      // open upward if there's more space above
+      y = trigger.top - menuHeight - gap;
+      openAbove = true;
+    }
+
+    setColorMenu((prev) => ({
+      ...prev,
+      y,
+      openAbove,
+    }));
   });
 };
 
@@ -1363,9 +1383,9 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       {colorMenu.open && (
 <div
   id="color-menu-portal"
-  className={`fixed z-50 transition-transform duration-150 ease-out ${
-    colorMenu.openAbove ? "origin-bottom" : "origin-top"
-  }`}
+className={`fixed z-50 transition-all duration-150 ease-out transform ${
+  colorMenu.openAbove ? "origin-bottom" : "origin-top"
+}`}
   style={{
     top: colorMenu.y,
     left: colorMenu.x,
