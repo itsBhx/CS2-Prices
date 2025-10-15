@@ -564,23 +564,31 @@ function BehaviorSettings({ settings, setSettings }) {
 }
 
   /* ------------------------------- Color menu ------------------------------- */
-  const openColorMenuAtButton = (tab, i, e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const menuHeight = 200; // rough estimate for dropdown height
-    const viewportHeight = window.innerHeight;
+const openColorMenuAtButton = (tab, i, e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const menuHeight = 200; // estimated dropdown height
+  const viewportHeight = window.innerHeight;
 
-    // if there’s not enough space below → open above
-    const openAbove = rect.bottom + menuHeight > viewportHeight;
-    const y = openAbove ? rect.top - menuHeight - 6 : rect.bottom + 6;
+  // true if there's not enough room below the button
+  const openAbove = rect.bottom + menuHeight > viewportHeight;
 
-    setColorMenu({
-      open: true,
-      tab,
-      index: i,
-      x: rect.left,
-      y,
-    });
-  };
+  // compute coordinates using scroll position for perfect alignment
+  const scrollY = window.scrollY || window.pageYOffset;
+  const y = openAbove
+    ? rect.top + scrollY - menuHeight - 8 // 8px gap
+    : rect.bottom + scrollY + 8;
+
+  const x = rect.left + window.scrollX;
+
+  setColorMenu({
+    open: true,
+    tab,
+    index: i,
+    x,
+    y,
+    openAbove,
+  });
+};
 
   const closeColorMenu = () =>
     setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
