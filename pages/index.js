@@ -569,47 +569,51 @@ const openColorMenuAtButton = (tab, i, e) => {
   const scrollX = window.scrollX || window.pageXOffset;
   const scrollY = window.scrollY || window.pageYOffset;
 
-  // Step 1: open menu first (temporary position)
+  // Step 1: create a temp hidden menu to measure before showing
+  const temp = document.createElement("div");
+  temp.id = "temp-color-menu";
+  temp.style.position = "fixed";
+  temp.style.visibility = "hidden";
+  temp.style.pointerEvents = "none";
+  temp.style.left = "0";
+  temp.style.top = "0";
+  temp.style.zIndex = "-1";
+  document.body.appendChild(temp);
+
+  // Fill it with your menu content so it has real height
+  temp.innerHTML = `
+    <div class="bg-neutral-900 border border-neutral-700 rounded-md p-2 min-w-[180px]">
+      <div class="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+    </div>
+  `;
+  const menuH = temp.getBoundingClientRect().height;
+  const menuW = 180;
+  temp.remove();
+
+  // Step 2: determine best position BEFORE showing menu
+  let openAbove = false;
+  let x = trigger.left + scrollX;
+  let y = trigger.bottom + scrollY + 6;
+
+  // if not enough space below → flip up
+  if (trigger.bottom + menuH + 6 > window.innerHeight) {
+    y = trigger.top + scrollY - menuH - 6;
+    openAbove = true;
+  }
+
+  // ensure horizontally inside viewport
+  const rightEdge = scrollX + window.innerWidth;
+  if (x + menuW + 8 > rightEdge) x = rightEdge - menuW - 8;
+  if (x < scrollX + 8) x = scrollX + 8;
+
+  // Step 3: open at final coords (no reflow flicker)
   setColorMenu({
     open: true,
     tab,
     index: i,
-    x: trigger.left + scrollX,
-    y: trigger.bottom + scrollY + 8,
-    openAbove: false,
-  });
-
-  // Step 2: measure real height and reposition correctly
-  requestAnimationFrame(() => {
-    const el = document.getElementById("color-menu-portal");
-    if (!el) return;
-
-    const menuRect = el.getBoundingClientRect();
-    const menuW = menuRect.width;
-    const menuH = menuRect.height;
-
-    let x = trigger.left + scrollX;
-    let y = trigger.bottom + scrollY + 8; // default below
-    let openAbove = false;
-
-    // Flip up if not enough space below
-    if (trigger.bottom + menuH + 8 > window.innerHeight) {
-      y = trigger.top + scrollY - menuH - 8;
-      openAbove = true;
-    }
-
-    // Keep inside viewport horizontally
-    const rightEdge = scrollX + window.innerWidth;
-    if (x + menuW + 8 > rightEdge) x = rightEdge - menuW - 8;
-    if (x < scrollX + 8) x = scrollX + 8;
-
-    // Prevent off-screen top overflow
-    if (y < scrollY + 8) {
-      y = trigger.bottom + scrollY + 8;
-      openAbove = false;
-    }
-
-    setColorMenu((cm) => ({ ...cm, x, y, openAbove }));
+    x,
+    y,
+    openAbove,
   });
 };
 
@@ -1390,7 +1394,9 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       {colorMenu.open && (
 <div
   id="color-menu-portal"
-  className={`fixed z-50 ${colorMenu.openAbove ? "origin-bottom" : "origin-top"}`}
+  className={`fixed z-50 transition-all duration-150 ease-out ${
+    colorMenu.openAbove ? "origin-bottom" : "origin-top"
+  }`}
   style={{
     top: colorMenu.y,
     left: colorMenu.x,
