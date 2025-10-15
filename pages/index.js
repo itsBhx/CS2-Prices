@@ -1318,15 +1318,20 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                           </div>
                         </td>
 
-                        <td className="p-2 text-center text-green-400">
-                          {fmtMoney(row.price || 0)}
-                        </td>
+{/* Price (€) */}
+<td className="p-2 text-center font-bold text-black">
+  {fmtMoney(row.price || 0)}
+</td>
 
-                        <td className={`p-2 text-center ${color}`}>{fluctDisplay}</td>
+{/* Fluctuation % */}
+<td className={`p-2 text-center font-bold ${color}`}>
+  {fluctDisplay}
+</td>
 
-                        <td className="p-2 text-center text-orange-400">
-                          {fmtMoney(total)}
-                        </td>
+{/* Total (€) */}
+<td className="p-2 text-center font-bold text-black">
+  {fmtMoney(total)}
+</td>
 
                         <td className="p-2 text-center">
                           <button
