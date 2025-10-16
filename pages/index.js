@@ -534,7 +534,18 @@ const handleSave = () => {
 useEffect(() => {
   window.toast = (msg) => {
     if (msg === "settingsSaved") {
-      toast.success("💾 Settings saved successfully");
+      toast.success("Settings saved successfully", {
+        icon: "💾",
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
     }
   };
 }, []);
