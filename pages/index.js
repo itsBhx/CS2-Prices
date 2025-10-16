@@ -517,12 +517,16 @@ const handleSave = () => {
     refreshMinutes: Number(refreshMinutes),
   }));
 
-  toast.success("💾 Settings saved successfully", {
+  toast.success("Settings saved successfully", {
     icon: "💾",
     style: {
-      background: "#1a1a1d",
+      background: "#141414",          // deeper graphite tone
       color: "#fff",
-      border: "1px solid #3a3a3f",
+      border: "1px solid #ff8c00",    // subtle orange accent
+      boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+      fontWeight: 600,
+      backdropFilter: "blur(8px)",
+      opacity: 0.95,                  // more solid, less transparent
     },
   });
 };
