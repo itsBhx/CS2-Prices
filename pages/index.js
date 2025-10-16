@@ -816,39 +816,57 @@ useEffect(() => {
 
   // ✅ Global console command to simulate snapshot
 useEffect(() => {
-  window.snapSim = async () => {
-    const key = todayKeyLisbon();
-    console.log(`🧪 Simulating snapshot for ${key}...`);
+  window.snapSim = async (mode = "today") => {
+    const todayKey = todayKeyLisbon();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = todayKeyLisbon(yesterday);
 
     const newSnaps = { ...snapshots };
-    newSnaps["dashboard"] = { value: grandTotal, dateKey: key, ts: Date.now() };
 
-    for (const name of allTabNames) {
-      newSnaps[name] = {
-        value: totals[name] || 0,
-        dateKey: key,
+    // Simulate yesterday’s snapshot (baseline)
+    if (mode === "yesterday") {
+      newSnaps["dashboard"] = {
+        value: grandTotal * 0.8, // pretend 20% lower baseline
+        dateKey: yesterdayKey,
+        ts: Date.now() - 86400000,
+      };
+      console.log(`📸 Simulated yesterday snapshot: ${fmtMoney(grandTotal * 0.8)}€`);
+    }
+
+    // Simulate today’s snapshot (current)
+    if (mode === "today") {
+      newSnaps["dashboard"] = {
+        value: grandTotal,
+        dateKey: todayKey,
         ts: Date.now(),
       };
+      console.log(`📸 Simulated today snapshot: ${fmtMoney(grandTotal)}€`);
     }
 
     setSnapshots(newSnaps);
     localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
 
-toast.success("Snapshot saved successfully", {
-  icon: null,
-  style: {
-    background: "#141414",
-    color: "#fff",
-    border: "1px solid #ff8c00",
-    boxShadow: "0 0 15px rgba(255,140,0,0.25)",
-    fontWeight: 600,
-    backdropFilter: "blur(8px)",
-    opacity: 0.95,
-  },
-  duration: 4000,
-});
+    toast.success(
+      mode === "yesterday"
+        ? "🧪 Simulated yesterday snapshot"
+        : "🧪 Simulated today snapshot",
+      {
+        icon: null,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+        duration: 4000,
+      }
+    );
   };
-}, [snapshots, totals, allTabNames, grandTotal]);
+}, [snapshots, grandTotal]);
 
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
