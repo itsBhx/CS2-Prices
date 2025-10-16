@@ -455,7 +455,7 @@ export default function Home() {
       setSnapshots(newSnaps);
       localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
 
-      toast.success(`📸 Snapshot saved for ${key}`, {
+      toast.success(`Snapshot saved for ${key}`, {
         icon: null,
         style: {
           background: "#141414",
@@ -805,57 +805,63 @@ export default function Home() {
   }
 
 /* ----------------------------- Snap simulator ----------------------------- */
-// Simple visual snapshot simulator — does NOT modify localStorage
+// Visual simulator — temporarily overrides dashboard % display
 useEffect(() => {
   window.snapSim = (mode = "positive") => {
-    let fakePct = 0;
+    const dashEl = document.querySelector("#dash-diff");
+    if (!dashEl) {
+      console.warn("⚠️ Dashboard percentage element not found.");
+      return;
+    }
+
+    let text = "";
+    let colorClass = "";
 
     if (mode === "positive") {
-      fakePct = (Math.random() * 10 + 0.5).toFixed(2); // +0.5% to +10%
-      toast.success(`It went up by +${fakePct}%.`, {
-        style: {
-          background: "#141414",
-          color: "#00ff88",
-          border: "1px solid #00cc66",
-          boxShadow: "0 0 15px rgba(0,255,100,0.25)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-      console.log(`📈 SnapSim → It went up by +${fakePct}%.`);
-    }
-
-    if (mode === "negative") {
-      fakePct = (Math.random() * 10 + 0.5).toFixed(2); // -0.5% to -10%
-      toast.error(`It went down by -${fakePct}%.`, {
-        style: {
-          background: "#141414",
-          color: "#ff6666",
-          border: "1px solid #ff4d4d",
-          boxShadow: "0 0 15px rgba(255,77,77,0.25)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-      console.log(`📉 SnapSim → It went down by -${fakePct}%.`);
-    }
-
-    if (mode === "zero") {
-      toast("It did not change.", {
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #888",
-          boxShadow: "0 0 15px rgba(255,255,255,0.15)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
+      const fakePct = (Math.random() * 10 + 0.5).toFixed(2);
+      text = `It went up by +${fakePct}%.`;
+      colorClass = "text-green-400 drop-shadow-[0_0_6px_rgba(0,255,0,0.2)]";
+      console.log(`📈 SnapSim → ${text}`);
+    } else if (mode === "negative") {
+      const fakePct = (Math.random() * 10 + 0.5).toFixed(2);
+      text = `It went down by -${fakePct}%.`;
+      colorClass = "text-red-400 drop-shadow-[0_0_6px_rgba(255,0,0,0.2)]";
+      console.log(`📉 SnapSim → ${text}`);
+    } else if (mode === "zero") {
+      text = "It did not change.";
+      colorClass = "text-neutral-300";
       console.log("⏸ SnapSim → It did not change.");
+    } else {
+      console.warn("Usage: snapSim('positive' | 'negative' | 'zero')");
+      return;
     }
+
+    // Show unified toast message
+    toast("🧪 Displaying random generated values", {
+      icon: null,
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+      duration: 2500,
+    });
+
+    // temporarily override the dashboard text
+    const oldText = dashEl.textContent;
+    const oldClass = dashEl.className;
+    dashEl.textContent = text;
+    dashEl.className = colorClass;
+
+    // restore after 5 seconds
+    setTimeout(() => {
+      dashEl.textContent = oldText;
+      dashEl.className = oldClass;
+    }, 5000);
   };
 }, []);
 
@@ -1287,7 +1293,8 @@ useEffect(() => {
                 {/* Only the % text, slightly larger than base */}
                 <div className="text-[22px] font-medium tracking-tight">
                   <span
-                    className={
+                     id="dash-diff"  // 👈 this ID is required for snapSim()
+                     className={
                       dashPct > 0
                         ? "text-green-400 drop-shadow-[0_0_6px_rgba(0,255,0,0.2)]"
                         : dashPct < 0
