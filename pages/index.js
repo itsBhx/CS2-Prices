@@ -583,6 +583,7 @@ toast.success("Settings saved successfully", {
 
 useEffect(() => {
   window.toast = (msg) => {
+    // ✅ Settings saved toast
     if (msg === "settingsSaved") {
       toast.success("Settings saved successfully", {
         icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
@@ -591,6 +592,54 @@ useEffect(() => {
           color: "#fff",
           border: "1px solid #ff8c00",
           boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    }
+
+    // ✅ Cloud Save success
+    if (msg === "cloudSaved") {
+      toast.success("Synced to cloud", {
+        icon: <img src="/upload.svg" alt="" className="w-4 h-4" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    }
+
+    // ✅ Cloud Load success
+    if (msg === "cloudLoaded") {
+      toast.success("Loaded from cloud", {
+        icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    }
+
+    // ⚠️ Cloud error (for testing failure visuals)
+    if (msg === "cloudError") {
+      toast.error("Cloud sync failed", {
+        icon: <img src="/upload.svg" alt="" className="w-4 h-4 opacity-70" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff4d4d",
+          boxShadow: "0 0 15px rgba(255,77,77,0.3)",
           fontWeight: 600,
           backdropFilter: "blur(8px)",
           opacity: 0.95,
