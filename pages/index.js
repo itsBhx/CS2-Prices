@@ -378,13 +378,11 @@ useEffect(() => {
     const passed = hasPassedLisbonHHMM(settings.snapshotTimeHHMM);
     const alreadyTaken = snapshots["dashboard"]?.dateKey === key;
 
-    // Skip if not time yet or already taken
     if (!passed || alreadyTaken) return;
 
-    // Wait for refresh loop to finish if active
     while (isRefreshingRef.current) {
       console.log("⏳ Waiting for refresh loop to finish before snapshot...");
-      await new Promise((r) => setTimeout(r, 5000)); // check every 5s
+      await new Promise((r) => setTimeout(r, 5000));
     }
 
     console.log("📸 Taking daily snapshot...");
@@ -402,27 +400,22 @@ useEffect(() => {
     setSnapshots(newSnaps);
     localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
 
-    console.log(`✅ Snapshot completed for ${key} at ${settings.snapshotTimeHHMM} WEST`);
-
-    // ✅ Show toast after successful snapshot
-toast.success(`Snapshot saved for ${key}`, {
-  icon: null,
-  style: {
-    background: "#141414",
-    color: "#fff",
-    border: "1px solid #61dafb", // light blue for snapshots
-    boxShadow: "0 0 15px rgba(97,218,251,0.3)",
-    fontWeight: 600,
-    backdropFilter: "blur(8px)",
-    opacity: 0.95,
-  },
-  duration: 4000,
-});
-
+    toast.success(`📸 Snapshot saved for ${key}`, {
+      icon: null,
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+      duration: 4000,
+    });
   };
 
-  // Check once per minute
-useEffect(() => {
+  // Check once per minute only
   const interval = setInterval(checkSnapshot, 60 * 1000);
   return () => clearInterval(interval);
 }, [totals, allTabNames, grandTotal, snapshots, settings.snapshotTimeHHMM]);
