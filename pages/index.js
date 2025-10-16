@@ -405,7 +405,7 @@ useEffect(() => {
     console.log(`✅ Snapshot completed for ${key} at ${settings.snapshotTimeHHMM} WEST`);
 
     // ✅ Show toast after successful snapshot
-toast.success(`📸 Snapshot saved for ${key}`, {
+toast.success(`Snapshot saved for ${key}`, {
   icon: null,
   style: {
     background: "#141414",
