@@ -92,8 +92,8 @@ const [syncMsg, setSyncMsg] = useState(null)
 
 async function saveToCloud() {
   try {
-    const deviceId = getDeviceId()
-    if (!deviceId) throw new Error('No device id')
+    const deviceId = getDeviceId();
+    if (!deviceId) throw new Error("No device id");
 
     const payload = {
       tabs,
@@ -101,70 +101,120 @@ async function saveToCloud() {
       snapshots,
       settings,
       lastUpdatedAt,
-    }
+    };
 
     const { error } = await supabase
-      .from('user_data')
+      .from("user_data")
       .upsert(
         {
           device_id: deviceId,
           blob: payload,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'device_id' } // upsert by device_id
-      )
+        { onConflict: "device_id" }
+      );
 
-    if (error) throw error
-    setSyncMsg('✅ Saved to cloud')
-    setTimeout(() => setSyncMsg(null), 3000)
+    if (error) throw error;
+
+    toast.success("Synced to cloud", {
+      icon: <img src="/upload.svg" alt="" className="w-4 h-4" />,
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+    });
   } catch (e) {
-    console.error(e)
-    setSyncMsg('❌ Save failed')
-    setTimeout(() => setSyncMsg(null), 3000)
+    console.error(e);
+    toast.error("Cloud save failed", {
+      icon: <img src="/upload.svg" alt="" className="w-4 h-4 opacity-70" />,
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff4d4d",
+        boxShadow: "0 0 15px rgba(255,77,77,0.3)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+    });
   }
 }
 
 async function loadFromCloud() {
   try {
-    const deviceId = getDeviceId()
-    if (!deviceId) throw new Error('No device id')
+    const deviceId = getDeviceId();
+    if (!deviceId) throw new Error("No device id");
 
     const { data: rows, error } = await supabase
-      .from('user_data')
-      .select('blob')
-      .eq('device_id', deviceId)
-      .limit(1)
+      .from("user_data")
+      .select("blob")
+      .eq("device_id", deviceId)
+      .limit(1);
 
-    if (error) throw error
-    const row = rows?.[0]
+    if (error) throw error;
+
+    const row = rows?.[0];
     if (!row?.blob) {
-      setSyncMsg('ℹ️ No cloud data yet')
-      setTimeout(() => setSyncMsg(null), 3000)
-      return
+      toast("No cloud data found", {
+        icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #888",
+          boxShadow: "0 0 15px rgba(255,255,255,0.15)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+      return;
     }
 
-    const { tabs: T, data: D, snapshots: S, settings: ST, lastUpdatedAt: LU } = row.blob
+    const { tabs: T, data: D, snapshots: S, settings: ST, lastUpdatedAt: LU } = row.blob;
 
-    // merge into state
-    setTabs(T || [])
-    setData(D || {})
-    setSnapshots(S || {})
-    setSettings(ST || settings)
-    setLastUpdatedAt(LU || null)
+    setTabs(T || []);
+    setData(D || {});
+    setSnapshots(S || {});
+    setSettings(ST || settings);
+    setLastUpdatedAt(LU || null);
 
-    // also update localStorage
-    localStorage.setItem('cs2-tabs', JSON.stringify(T || []))
-    localStorage.setItem('cs2-data', JSON.stringify(D || {}))
-    localStorage.setItem('cs2-snapshots', JSON.stringify(S || {}))
-    localStorage.setItem('cs2-settings', JSON.stringify(ST || settings))
-    if (LU) localStorage.setItem('cs2-lastUpdatedAt', LU)
+    localStorage.setItem("cs2-tabs", JSON.stringify(T || []));
+    localStorage.setItem("cs2-data", JSON.stringify(D || {}));
+    localStorage.setItem("cs2-snapshots", JSON.stringify(S || {}));
+    localStorage.setItem("cs2-settings", JSON.stringify(ST || settings));
+    if (LU) localStorage.setItem("cs2-lastUpdatedAt", LU);
 
-    setSyncMsg('✅ Loaded from cloud')
-    setTimeout(() => setSyncMsg(null), 3000)
+    toast.success("Loaded from cloud", {
+      icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+    });
   } catch (e) {
-    console.error(e)
-    setSyncMsg('❌ Load failed')
-    setTimeout(() => setSyncMsg(null), 3000)
+    console.error(e);
+    toast.error("Cloud load failed", {
+      icon: <img src="/download.svg" alt="" className="w-4 h-4 opacity-70" />,
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff4d4d",
+        boxShadow: "0 0 15px rgba(255,77,77,0.3)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+    });
   }
 }
 
@@ -708,10 +758,6 @@ useEffect(() => {
         </h1>
       </div>
 
-      {syncMsg && (
-        <div className="mt-1 text-xs text-neutral-300">{syncMsg}</div>
-      )}
-
       <div className="mt-1 text-xs text-neutral-400">
         {lastUpdatedAt
           ? `Last updated at ${lastUpdatedAt} WEST`
@@ -1192,10 +1238,6 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
       Save Cloud
     </button>
   </div>
-
-  {syncMsg && (
-    <div className="mt-2 text-xs text-neutral-300">{syncMsg}</div>
-  )}
 </section>
 </div>
 )}
