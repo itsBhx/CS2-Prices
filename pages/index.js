@@ -422,8 +422,8 @@ toast.success(`Snapshot saved for ${key}`, {
   };
 
   // Check once per minute
+useEffect(() => {
   const interval = setInterval(checkSnapshot, 60 * 1000);
-  checkSnapshot(); // run immediately on mount
   return () => clearInterval(interval);
 }, [totals, allTabNames, grandTotal, snapshots, settings.snapshotTimeHHMM]);
 
