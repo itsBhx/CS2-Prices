@@ -581,25 +581,6 @@ toast.success("Settings saved successfully", {
 });
 };
 
-  useEffect(() => {
-  // Global console command for API state simulation
-  window.apiSim = (state) => {
-    const valid = ["stable", "429", "down"];
-    if (!valid.includes(state)) {
-      console.warn("Usage: apiSim('stable' | '429' | 'down')");
-      return;
-    }
-
-    setApiStatus(state);
-    console.log(`🔧 API status manually set to: ${state}`);
-
-    // 🔔 Trigger corresponding toast
-    if (state === "stable") window.toast("apiStable");
-    if (state === "429") window.toast("api429");
-    if (state === "down") window.toast("apiDown");
-  };
-}, []);
-
 useEffect(() => {
   window.toast = (msg) => {
     // ✅ Settings saved toast
@@ -756,6 +737,70 @@ useEffect(() => {
     </section>
   );
 }
+
+  // ✅ Global API simulator — available from anywhere
+useEffect(() => {
+  window.apiSim = (state) => {
+    const valid = ["stable", "429", "down"];
+    if (!valid.includes(state)) {
+      console.warn("Usage: apiSim('stable' | '429' | 'down')");
+      return;
+    }
+
+    setApiStatus(state);
+    console.log(`🔧 API status manually set to: ${state}`);
+
+    // 🔔 Show plain text toasts (no icons)
+    if (state === "stable") {
+      toast.success("Steam API stable", {
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #00cc66",
+          boxShadow: "0 0 15px rgba(0,204,102,0.25)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+          zIndex: 9999,
+        },
+        duration: 2500,
+      });
+    }
+
+    if (state === "429") {
+      toast("Steam API rate limited", {
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ffcc00",
+          boxShadow: "0 0 15px rgba(255,204,0,0.25)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+          zIndex: 9999,
+        },
+        duration: 4000,
+      });
+    }
+
+    if (state === "down") {
+      toast.error("Steam API offline", {
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff4d4d",
+          boxShadow: "0 0 15px rgba(255,77,77,0.25)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+          zIndex: 9999,
+        },
+        duration: 5000,
+      });
+    }
+  };
+}, []);
+
 
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
