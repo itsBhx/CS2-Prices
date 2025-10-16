@@ -805,65 +805,59 @@ export default function Home() {
   }
 
 /* ----------------------------- Snap simulator ----------------------------- */
-// For testing snapshot changes from console
+// Simple visual snapshot simulator — does NOT modify localStorage
 useEffect(() => {
-  window.snapSim = async (mode = "today") => {
-    const todayKey = todayKeyLisbon();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = todayKeyLisbon(yesterday);
+  window.snapSim = (mode = "positive") => {
+    let fakePct = 0;
 
-    const newSnaps = { ...snapshots };
-
-    if (mode === "yesterday") {
-      newSnaps[`dashboard_${yesterdayKey}`] = {
-        value: grandTotal * 0.8,
-        dateKey: yesterdayKey,
-        ts: Date.now() - 86400000,
-        sim: false, // ✅ now counts as a real snapshot
-      };
-      console.log(
-        `📸 Simulated yesterday snapshot (${yesterdayKey}): ${fmtMoney(
-          grandTotal * 0.8
-        )}€`
-      );
-    }
-
-    if (mode === "today") {
-      newSnaps[`dashboard_${todayKey}`] = {
-        value: grandTotal,
-        dateKey: todayKey,
-        ts: Date.now(),
-        sim: false, // ✅ now counts as a real snapshot
-      };
-      console.log(
-        `📸 Simulated today snapshot (${todayKey}): ${fmtMoney(grandTotal)}€`
-      );
-    }
-
-    setSnapshots(newSnaps);
-    localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
-
-    toast.success(
-      mode === "yesterday"
-        ? "Simulated yesterday snapshot"
-        : "Simulated today snapshot",
-      {
-        icon: null,
+    if (mode === "positive") {
+      fakePct = (Math.random() * 10 + 0.5).toFixed(2); // +0.5% to +10%
+      toast.success(`It went up by +${fakePct}%.`, {
         style: {
           background: "#141414",
-          color: "#fff",
-          border: "1px solid #ff8c00",
-          boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+          color: "#00ff88",
+          border: "1px solid #00cc66",
+          boxShadow: "0 0 15px rgba(0,255,100,0.25)",
           fontWeight: 600,
           backdropFilter: "blur(8px)",
           opacity: 0.95,
         },
-        duration: 4000,
-      }
-    );
+      });
+      console.log(`📈 SnapSim → It went up by +${fakePct}%.`);
+    }
+
+    if (mode === "negative") {
+      fakePct = (Math.random() * 10 + 0.5).toFixed(2); // -0.5% to -10%
+      toast.error(`It went down by -${fakePct}%.`, {
+        style: {
+          background: "#141414",
+          color: "#ff6666",
+          border: "1px solid #ff4d4d",
+          boxShadow: "0 0 15px rgba(255,77,77,0.25)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+      console.log(`📉 SnapSim → It went down by -${fakePct}%.`);
+    }
+
+    if (mode === "zero") {
+      toast("It did not change.", {
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #888",
+          boxShadow: "0 0 15px rgba(255,255,255,0.15)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+      console.log("⏸ SnapSim → It did not change.");
+    }
   };
-}, [snapshots, grandTotal]);
+}, []);
 
 /* ----------------------------- API simulator ----------------------------- */
 useEffect(() => {
