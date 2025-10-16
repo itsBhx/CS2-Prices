@@ -941,11 +941,16 @@ useEffect(() => {
 }, []);
 
   /* ------------------------------- Render UI ------------------------------- */
-  const dashSnap = snapshots["dashboard"];
-  const dashPct =
-    dashSnap && dashSnap.value > 0
-      ? ((grandTotal - dashSnap.value) / dashSnap.value) * 100
-      : null;
+const dashHistory = Object.values(snapshots)
+  .filter((s) => s && s.value && s.dateKey)
+  .sort((a, b) => b.ts - a.ts); // newest first
+
+const lastSnap = dashHistory.find((s) => s && s.value && s.dateKey);
+
+const dashPct =
+  lastSnap && lastSnap.value > 0
+    ? ((grandTotal - lastSnap.value) / lastSnap.value) * 100
+    : 0;
 
   return (
     <div className="min-h-screen text-orange-50 font-sans bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
@@ -1241,28 +1246,21 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                   <div className="text-3xl font-extrabold text-orange-400">{fmtMoney(grandTotal)}€</div>
                 </div>
 <div className="text-base font-semibold">
-  {dashPct == null ? (
-    <span className="text-neutral-400">
-      Your inventory value is {fmtMoney(grandTotal)}€. No snapshot yet today.
-    </span>
-  ) : (
-    <span
-      className={
-        dashPct > 0
-          ? "text-green-400"
-          : dashPct < 0
-          ? "text-red-400"
-          : "text-neutral-300"
-      }
-    >
-      Your inventory value is {fmtMoney(grandTotal)}€.{" "}
-      {dashPct > 0
-        ? `It went up by +${Math.abs(dashPct).toFixed(2)}%.`
+  <span
+    className={
+      dashPct > 0
+        ? "text-green-400"
         : dashPct < 0
-        ? `It went down by -${Math.abs(dashPct).toFixed(2)}%.`
-        : "It stayed the same since last snapshot."}
-    </span>
-  )}
+        ? "text-red-400"
+        : "text-neutral-300"
+    }
+  >
+    {dashPct > 0
+      ? `It went up by +${Math.abs(dashPct).toFixed(2)}%.`
+      : dashPct < 0
+      ? `It went down by -${Math.abs(dashPct).toFixed(2)}%.`
+      : "It stayed the same since last snapshot."}
+  </span>
 </div>
               </div>
             </div>
