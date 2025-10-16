@@ -397,8 +397,9 @@ useEffect(() => {
       };
     }
 
-    setSnapshots(newSnaps);
-    localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
+// 🧪 Apply simulated snapshot in-memory only (no persistence)
+setSnapshots(newSnaps);
+console.log("(Sim only) snapshot not saved to localStorage");
 
     toast.success(`📸 Snapshot saved for ${key}`, {
       icon: null,
