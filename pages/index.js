@@ -405,18 +405,20 @@ useEffect(() => {
     console.log(`✅ Snapshot completed for ${key} at ${settings.snapshotTimeHHMM} WEST`);
 
     // ✅ Show toast after successful snapshot
-    toast.success(`📸 Snapshot saved for ${key}`, {
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #61dafb", // light blue to differentiate from orange toasts
-        boxShadow: "0 0 15px rgba(97,218,251,0.3)",
-        fontWeight: 600,
-        backdropFilter: "blur(8px)",
-        opacity: 0.95,
-      },
-      duration: 4000,
-    });
+toast.success(`📸 Snapshot saved for ${key}`, {
+  icon: null,
+  style: {
+    background: "#141414",
+    color: "#fff",
+    border: "1px solid #61dafb", // light blue for snapshots
+    boxShadow: "0 0 15px rgba(97,218,251,0.3)",
+    fontWeight: 600,
+    backdropFilter: "blur(8px)",
+    opacity: 0.95,
+  },
+  duration: 4000,
+});
+
   };
 
   // Check once per minute
@@ -665,6 +667,7 @@ useEffect(() => {
         // 🟢 API stable
     if (msg === "apiStable") {
       toast.success("Steam API stable", {
+        icon: null,
         style: {
           background: "#141414",
           color: "#fff",
@@ -680,6 +683,7 @@ useEffect(() => {
     // ⚠️ API rate limited
     if (msg === "api429") {
       toast("Steam API rate limited", {
+        icon: null,
         style: {
           background: "#141414",
           color: "#fff",
@@ -695,6 +699,7 @@ useEffect(() => {
     // 🔴 API down
     if (msg === "apiDown") {
       toast.error("Steam API offline", {
+        icon: null,
         style: {
           background: "#141414",
           color: "#fff",
