@@ -849,8 +849,8 @@ useEffect(() => {
 
     toast.success(
       mode === "yesterday"
-        ? "🧪 Simulated yesterday snapshot"
-        : "🧪 Simulated today snapshot",
+        ? "Simulated yesterday snapshot"
+        : "Simulated today snapshot",
       {
         icon: null,
         style: {
