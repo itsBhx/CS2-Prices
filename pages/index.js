@@ -510,14 +510,30 @@ function BehaviorSettings({ settings, setSettings }) {
   const [snapshotTime, setSnapshotTime] = useState(settings.snapshotTimeHHMM);
   const [refreshMinutes, setRefreshMinutes] = useState(settings.refreshMinutes);
 
-  const handleSave = () => {
-    setSettings((prev) => ({
-      ...prev,
-      snapshotTimeHHMM: snapshotTime,
-      refreshMinutes: Number(refreshMinutes),
-    }));
-    console.log("✅ Settings saved:", { snapshotTime, refreshMinutes });
+const handleSave = () => {
+  setSettings((prev) => ({
+    ...prev,
+    snapshotTimeHHMM: snapshotTime,
+    refreshMinutes: Number(refreshMinutes),
+  }));
+
+  toast.success("💾 Settings saved successfully", {
+    icon: "💾",
+    style: {
+      background: "#1a1a1d",
+      color: "#fff",
+      border: "1px solid #3a3a3f",
+    },
+  });
+};
+
+useEffect(() => {
+  window.toast = (msg) => {
+    if (msg === "settingsSaved") {
+      toast.success("💾 Settings saved successfully");
+    }
   };
+}, []);
 
   return (
     <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
@@ -563,7 +579,6 @@ function BehaviorSettings({ settings, setSettings }) {
   );
 }
 
-/* ------------------------------- Color menu ------------------------------- */
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
   const trigger = e.currentTarget.getBoundingClientRect();
