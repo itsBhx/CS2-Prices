@@ -517,25 +517,25 @@ const handleSave = () => {
     refreshMinutes: Number(refreshMinutes),
   }));
 
-  toast.success("Settings saved successfully", {
-    icon: "💾",
-    style: {
-      background: "#141414",          // deeper graphite tone
-      color: "#fff",
-      border: "1px solid #ff8c00",    // subtle orange accent
-      boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-      fontWeight: 600,
-      backdropFilter: "blur(8px)",
-      opacity: 0.95,                  // more solid, less transparent
-    },
-  });
+toast.success("Settings saved successfully", {
+  icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
+  style: {
+    background: "#141414",
+    color: "#fff",
+    border: "1px solid #ff8c00",
+    boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+    fontWeight: 600,
+    backdropFilter: "blur(8px)",
+    opacity: 0.95,
+  },
+});
 };
 
 useEffect(() => {
   window.toast = (msg) => {
     if (msg === "settingsSaved") {
       toast.success("Settings saved successfully", {
-        icon: "💾",
+        icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
         style: {
           background: "#141414",
           color: "#fff",
