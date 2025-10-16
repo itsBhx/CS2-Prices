@@ -404,6 +404,19 @@ useEffect(() => {
     console.log(`✅ Snapshot completed for ${key} at ${settings.snapshotTimeHHMM} WEST`);
   };
 
+  toast.success(`📸 Snapshot saved for ${key}`, {
+  style: {
+    background: "#141414",
+    color: "#fff",
+    border: "1px solid #ff8c00",
+    boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+    fontWeight: 600,
+    backdropFilter: "blur(8px)",
+    opacity: 0.95,
+  },
+  duration: 4000,
+});
+
   // Check once per minute
   const interval = setInterval(checkSnapshot, 60 * 1000);
   checkSnapshot(); // run immediately on mount
@@ -801,6 +814,40 @@ useEffect(() => {
   };
 }, []);
 
+  // ✅ Global console command to simulate snapshot
+useEffect(() => {
+  window.snapSim = async () => {
+    const key = todayKeyLisbon();
+    console.log(`🧪 Simulating snapshot for ${key}...`);
+
+    const newSnaps = { ...snapshots };
+    newSnaps["dashboard"] = { value: grandTotal, dateKey: key, ts: Date.now() };
+
+    for (const name of allTabNames) {
+      newSnaps[name] = {
+        value: totals[name] || 0,
+        dateKey: key,
+        ts: Date.now(),
+      };
+    }
+
+    setSnapshots(newSnaps);
+    localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
+
+    toast.success(`📸 Simulated snapshot for ${key}`, {
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+      duration: 4000,
+    });
+  };
+}, [snapshots, totals, allTabNames, grandTotal]);
 
 /* ------------------------------- Color menu ------------------------------- */
 const openColorMenuAtButton = (tab, i, e) => {
@@ -1192,26 +1239,30 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                   <div className="text-sm text-neutral-400">Inventory Value</div>
                   <div className="text-3xl font-extrabold text-orange-400">{fmtMoney(grandTotal)}€</div>
                 </div>
-                <div className="text-base font-semibold">
-                  {dashPct == null ? (
-                    <span className="text-neutral-400">
-                      Snapshot auto-saves at {settings.snapshotTimeHHMM} WEST
-                    </span>
-                  ) : (
-                    <span
-                      className={
-                        dashPct > 0
-                          ? "text-green-400"
-                          : dashPct < 0
-                          ? "text-red-400"
-                          : "text-neutral-300"
-                      }
-                    >
-                      {sign(dashPct)}
-                      {Math.abs(dashPct).toFixed(2)} % since last snapshot
-                    </span>
-                  )}
-                </div>
+<div className="text-base font-semibold">
+  {dashPct == null ? (
+    <span className="text-neutral-400">
+      Your inventory value is {fmtMoney(grandTotal)}€. No snapshot yet today.
+    </span>
+  ) : (
+    <span
+      className={
+        dashPct > 0
+          ? "text-green-400"
+          : dashPct < 0
+          ? "text-red-400"
+          : "text-neutral-300"
+      }
+    >
+      Your inventory value is {fmtMoney(grandTotal)}€.{" "}
+      {dashPct > 0
+        ? `It went up by +${Math.abs(dashPct).toFixed(2)}%.`
+        : dashPct < 0
+        ? `It went down by -${Math.abs(dashPct).toFixed(2)}%.`
+        : "It stayed the same since last snapshot."}
+    </span>
+  )}
+</div>
               </div>
             </div>
 
