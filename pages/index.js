@@ -401,21 +401,23 @@ useEffect(() => {
 
     setSnapshots(newSnaps);
     localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
-    console.log(`✅ Snapshot completed for ${key} at ${settings.snapshotTimeHHMM} WEST`);
-  };
 
-  toast.success(`📸 Snapshot saved for ${key}`, {
-  style: {
-    background: "#141414",
-    color: "#fff",
-    border: "1px solid #ff8c00",
-    boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-    fontWeight: 600,
-    backdropFilter: "blur(8px)",
-    opacity: 0.95,
-  },
-  duration: 4000,
-});
+    console.log(`✅ Snapshot completed for ${key} at ${settings.snapshotTimeHHMM} WEST`);
+
+    // ✅ Show toast after successful snapshot
+    toast.success(`📸 Snapshot saved for ${key}`, {
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #61dafb", // light blue to differentiate from orange toasts
+        boxShadow: "0 0 15px rgba(97,218,251,0.3)",
+        fontWeight: 600,
+        backdropFilter: "blur(8px)",
+        opacity: 0.95,
+      },
+      duration: 4000,
+    });
+  };
 
   // Check once per minute
   const interval = setInterval(checkSnapshot, 60 * 1000);
