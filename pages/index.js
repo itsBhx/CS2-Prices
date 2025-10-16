@@ -824,24 +824,22 @@ useEffect(() => {
 
     const newSnaps = { ...snapshots };
 
-    // Simulate yesterday’s snapshot (baseline)
     if (mode === "yesterday") {
-      newSnaps["dashboard"] = {
+      newSnaps[`dashboard_${yesterdayKey}`] = {
         value: grandTotal * 0.8, // pretend 20% lower baseline
         dateKey: yesterdayKey,
         ts: Date.now() - 86400000,
       };
-      console.log(`📸 Simulated yesterday snapshot: ${fmtMoney(grandTotal * 0.8)}€`);
+      console.log(`📸 Simulated yesterday snapshot (${yesterdayKey}): ${fmtMoney(grandTotal * 0.8)}€`);
     }
 
-    // Simulate today’s snapshot (current)
     if (mode === "today") {
-      newSnaps["dashboard"] = {
+      newSnaps[`dashboard_${todayKey}`] = {
         value: grandTotal,
         dateKey: todayKey,
         ts: Date.now(),
       };
-      console.log(`📸 Simulated today snapshot: ${fmtMoney(grandTotal)}€`);
+      console.log(`📸 Simulated today snapshot (${todayKey}): ${fmtMoney(grandTotal)}€`);
     }
 
     setSnapshots(newSnaps);
@@ -960,14 +958,15 @@ useEffect(() => {
 
   /* ------------------------------- Render UI ------------------------------- */
 const dashHistory = Object.values(snapshots)
-  .filter((s) => s && s.value && s.dateKey)
-  .sort((a, b) => b.ts - a.ts); // newest first
+  .filter((s) => s && s.value && s.dateKey && s.dateKey.startsWith("202"))
+  .sort((a, b) => b.ts - a.ts);
 
-const lastSnap = dashHistory.find((s) => s && s.value && s.dateKey);
+const lastSnap = dashHistory[0];
+const prevSnap = dashHistory[1];
 
 const dashPct =
-  lastSnap && lastSnap.value > 0
-    ? ((grandTotal - lastSnap.value) / lastSnap.value) * 100
+  lastSnap && prevSnap && prevSnap.value > 0
+    ? ((lastSnap.value - prevSnap.value) / prevSnap.value) * 100
     : 0;
 
   return (
