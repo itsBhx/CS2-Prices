@@ -577,18 +577,23 @@ const handleSave = () => {
     refreshMinutes: Number(refreshMinutes),
   }));
 
-toast.success("Settings saved successfully", {
-  icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
-  style: {
-    background: "#141414",
-    color: "#fff",
-    border: "1px solid #ff8c00",
-    boxShadow: "0 0 15px rgba(255,140,0,0.25)",
-    fontWeight: 600,
-    backdropFilter: "blur(8px)",
-    opacity: 0.95,
-  },
-});
+  toast.success("Settings saved successfully", {
+    icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
+    style: {
+      background: "#141414",
+      color: "#fff",
+      border: "1px solid #ff8c00",
+      boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+      fontWeight: 600,
+      backdropFilter: "blur(8px)",
+      opacity: 0.95,
+    },
+  });
+
+  // ✅ Restart app to apply new refresh interval immediately
+  setTimeout(() => {
+    location.reload();
+  }, 1200); // small delay so toast is visible before reload
 };
 
 useEffect(() => {
@@ -1262,13 +1267,13 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                   <div className="text-sm text-neutral-400">Inventory Value</div>
                   <div className="text-3xl font-extrabold text-orange-400">{fmtMoney(grandTotal)}€</div>
                 </div>
-<div className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+<div className="text-lg font-semibold tracking-tight">
   <span
     className={
       dashPct > 0
-        ? "text-green-400 drop-shadow-[0_0_8px_rgba(0,255,0,0.2)]"
+        ? "text-green-400 drop-shadow-[0_0_6px_rgba(0,255,0,0.2)]"
         : dashPct < 0
-        ? "text-red-400 drop-shadow-[0_0_8px_rgba(255,0,0,0.2)]"
+        ? "text-red-400 drop-shadow-[0_0_6px_rgba(255,0,0,0.2)]"
         : "text-neutral-300"
     }
   >
