@@ -834,18 +834,19 @@ useEffect(() => {
     setSnapshots(newSnaps);
     localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
 
-    toast.success(`📸 Simulated snapshot for ${key}`, {
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #ff8c00",
-        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-        fontWeight: 600,
-        backdropFilter: "blur(8px)",
-        opacity: 0.95,
-      },
-      duration: 4000,
-    });
+toast.success("Snapshot saved successfully", {
+  icon: null,
+  style: {
+    background: "#141414",
+    color: "#fff",
+    border: "1px solid #ff8c00",
+    boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+    fontWeight: 600,
+    backdropFilter: "blur(8px)",
+    opacity: 0.95,
+  },
+  duration: 4000,
+});
   };
 }, [snapshots, totals, allTabNames, grandTotal]);
 
