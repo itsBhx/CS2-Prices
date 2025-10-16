@@ -484,7 +484,7 @@ try {
   if (res.status === 429) {
     console.warn("⚠️ Steam API rate limited (429)");
     setApiStatus("429");
-    await sleep(10000); // 10s cooldown before retry
+    await sleep(30000); // 30s cooldown before retry
     continue;
   }
 
@@ -582,18 +582,6 @@ toast.success("Settings saved successfully", {
 };
 
 useEffect(() => {
-  // Developer console simulation for API states
-  window.apiSim = (state) => {
-    if (!["stable", "429", "down"].includes(state)) {
-      console.warn("Usage: apiSim('stable' | '429' | 'down')");
-      return;
-    }
-    setApiStatus(state);
-    console.log(`🔧 API status manually set to: ${state}`);
-  };
-}, []);
-
-useEffect(() => {
   window.toast = (msg) => {
     // ✅ Settings saved toast
     if (msg === "settingsSaved") {
@@ -658,6 +646,19 @@ useEffect(() => {
         },
       });
     }
+  };
+}, []);
+
+  useEffect(() => {
+  // Global console command for API state simulation
+  window.apiSim = (state) => {
+    const valid = ["stable", "429", "down"];
+    if (!valid.includes(state)) {
+      console.warn("Usage: apiSim('stable' | '429' | 'down')");
+      return;
+    }
+    setApiStatus(state);
+    console.log(`🔧 API status manually set to: ${state}`);
   };
 }, []);
 
