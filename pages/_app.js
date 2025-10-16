@@ -14,27 +14,20 @@ export default function App({ Component, pageProps }) {
         <link rel="icon" href="/logo.png" type="image/png" />
       </Head>
 
-      <Component {...pageProps} />
-
-      {/* Global Toast System */}
+      {/* Your global Toaster provider */}
       <Toaster
         position="top-right"
         toastOptions={{
           duration: 2500,
           style: {
-            background: "#1a1a1d", // matches your dark theme
+            background: "#1f1f1f",
             color: "#fff",
-            border: "1px solid #3a3a3f",
-            fontWeight: 500,
-          },
-          success: {
-            iconTheme: {
-              primary: "#f79c42", // your orange glow
-              secondary: "#1a1a1d",
-            },
+            border: "1px solid #ff8c00",
           },
         }}
       />
+
+      <Component {...pageProps} />
     </>
   );
 }
