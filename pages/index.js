@@ -1267,7 +1267,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                   <div className="text-sm text-neutral-400">Inventory Value</div>
                   <div className="text-3xl font-extrabold text-orange-400">{fmtMoney(grandTotal)}€</div>
                 </div>
-<div className="text-[15px] font-medium tracking-tight">
+<div className="text-[30px] font-medium tracking-tight">
   <span
     className={
       dashPct > 0
