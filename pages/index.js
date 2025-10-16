@@ -1262,13 +1262,13 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                   <div className="text-sm text-neutral-400">Inventory Value</div>
                   <div className="text-3xl font-extrabold text-orange-400">{fmtMoney(grandTotal)}€</div>
                 </div>
-<div className="text-base font-semibold">
+<div className="text-2xl sm:text-3xl font-extrabold tracking-tight">
   <span
     className={
       dashPct > 0
-        ? "text-green-400"
+        ? "text-green-400 drop-shadow-[0_0_8px_rgba(0,255,0,0.2)]"
         : dashPct < 0
-        ? "text-red-400"
+        ? "text-red-400 drop-shadow-[0_0_8px_rgba(255,0,0,0.2)]"
         : "text-neutral-300"
     }
   >
