@@ -837,7 +837,7 @@ useEffect(() => {
     }
 
     // Show unified toast message
-    toast("🧪 Displaying random generated values", {
+    toast("Displaying random generated values", {
       icon: null,
       style: {
         background: "#141414",
