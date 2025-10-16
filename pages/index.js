@@ -13,7 +13,7 @@ function getDeviceId() {
   return id
 }
 
-/* ====================== Time (Lisbon / WEST) helpers ====================== */
+/* ===================== Time (Lisbon / WEST) helpers ====================== */
 const LISBON_TZ = "Europe/Lisbon";
 function formatLisbonHM(date = new Date()) {
   return new Intl.DateTimeFormat("en-GB", {
