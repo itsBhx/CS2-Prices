@@ -1,20 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from "../lib/supabaseClient";
 
-// persistent id per browser (used as the “owner” key for your data row)
+/* ============================================================================
+   Persistent Device ID (owner key for Supabase row)
+============================================================================ */
 function getDeviceId() {
-  if (typeof window === 'undefined') return null
-  let id = localStorage.getItem('cs2-device-id')
+  if (typeof window === "undefined") return null;
+  let id = localStorage.getItem("cs2-device-id");
   if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem('cs2-device-id', id)
+    id = crypto.randomUUID();
+    localStorage.setItem("cs2-device-id", id);
   }
-  return id
+  return id;
 }
 
-/* ===================== Time (Lisbon / WEST) helpers ====================== */
+/* ============================================================================
+   Time helpers (Lisbon / WEST)
+============================================================================ */
 const LISBON_TZ = "Europe/Lisbon";
+
 function formatLisbonHM(date = new Date()) {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: LISBON_TZ,
@@ -23,6 +28,7 @@ function formatLisbonHM(date = new Date()) {
     hour12: false,
   }).format(date);
 }
+
 function todayKeyLisbon(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: LISBON_TZ,
@@ -31,16 +37,22 @@ function todayKeyLisbon(date = new Date()) {
     day: "2-digit",
   }).format(date);
 }
+
 function hasPassedLisbonHHMM(targetHHMM = "19:00") {
   const now = new Date();
   const [h, m] = targetHHMM.split(":").map(Number);
   const tzNow = new Date(now.toLocaleString("en-US", { timeZone: LISBON_TZ }));
-  return tzNow.getHours() > h || (tzNow.getHours() === h && tzNow.getMinutes() >= m);
+  return (
+    tzNow.getHours() > h ||
+    (tzNow.getHours() === h && tzNow.getMinutes() >= m)
+  );
 }
 
-/* ============================= UI helpers ============================= */
+/* ============================================================================
+   UI helpers
+============================================================================ */
 const fmtMoney = (n) => (isFinite(n) ? Number(n).toFixed(2) : "0.00");
-const sign = (n) => (n > 0 ? "+" : "");
+
 function hexToRgba(hex, alpha = 0.5) {
   if (!hex) return null;
   let h = hex.replace("#", "").trim();
@@ -53,13 +65,15 @@ function hexToRgba(hex, alpha = 0.5) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/* Small helper for handling mixed tab structures */
+/* Handle mixed tab structures */
 function getTabName(tab) {
   if (!tab) return "";
   return typeof tab === "string" ? tab : tab.name;
 }
 
-/* ============================= Defaults ============================= */
+/* ============================================================================
+   Defaults
+============================================================================ */
 const DEFAULT_SETTINGS = {
   colors: [
     { name: "Red", hex: "#ea9999" },
@@ -71,172 +85,204 @@ const DEFAULT_SETTINGS = {
   refreshMinutes: 60,
 };
 
-/* ================================== App ==================================== */
+/* ============================================================================
+   Component: Home (pages/index.js)
+============================================================================ */
 export default function Home() {
+  /* ------------------------------- State ----------------------------------- */
   const [tabs, setTabs] = useState([]);
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [showSettings, setShowSettings] = useState(false);
+
   const [data, setData] = useState({});
   const [totals, setTotals] = useState({});
   const [snapshots, setSnapshots] = useState({});
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [apiStatus, setApiStatus] = useState("stable"); // "stable" | "429" | "down"
-  const [isLoading, setIsLoading] = useState(false); // controls spinner visibility
-  const [colorMenu, setColorMenu] = useState({ open: false, tab: null, index: null, x: 0, y: 0 });
-  const refreshTimerRef = useRef([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [colorMenu, setColorMenu] = useState({
+    open: false,
+    tab: null,
+    index: null,
+    x: 0,
+    y: 0,
+  });
+
+  // refresh loop guards
+  const refreshTimerRef = useRef({ running: false });
   const isRefreshingRef = useRef(false);
 
-  // Optional: small toast state
-const [syncMsg, setSyncMsg] = useState(null)
-
-async function saveToCloud() {
-  try {
-    const deviceId = getDeviceId();
-    if (!deviceId) throw new Error("No device id");
-
-    const payload = {
-      tabs,
-      data,
-      snapshots,
-      settings,
-      lastUpdatedAt,
-    };
-
-    const { error } = await supabase
-      .from("user_data")
-      .upsert(
-        {
-          device_id: deviceId,
-          blob: payload,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "device_id" }
-      );
-
-    if (error) throw error;
-
-    toast.success("Synced to cloud", {
-      icon: <img src="/upload.svg" alt="" className="w-4 h-4" />,
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #ff8c00",
-        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-        fontWeight: 600,
-        backdropFilter: "blur(8px)",
-        opacity: 0.95,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    toast.error("Cloud save failed", {
-      icon: <img src="/upload.svg" alt="" className="w-4 h-4 opacity-70" />,
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #ff4d4d",
-        boxShadow: "0 0 15px rgba(255,77,77,0.3)",
-        fontWeight: 600,
-        backdropFilter: "blur(8px)",
-        opacity: 0.95,
-      },
-    });
-  }
-}
-
-async function loadFromCloud() {
-  try {
-    const deviceId = getDeviceId();
-    if (!deviceId) throw new Error("No device id");
-
-    const { data: rows, error } = await supabase
-      .from("user_data")
-      .select("blob")
-      .eq("device_id", deviceId)
-      .limit(1);
-
-    if (error) throw error;
-
-    const row = rows?.[0];
-    if (!row?.blob) {
-      toast("No cloud data found", {
-        icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #888",
-          boxShadow: "0 0 15px rgba(255,255,255,0.15)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-      return;
-    }
-
-    const { tabs: T, data: D, snapshots: S, settings: ST, lastUpdatedAt: LU } = row.blob;
-
-    setTabs(T || []);
-    setData(D || {});
-    setSnapshots(S || {});
-    setSettings(ST || settings);
-    setLastUpdatedAt(LU || null);
-
-    localStorage.setItem("cs2-tabs", JSON.stringify(T || []));
-    localStorage.setItem("cs2-data", JSON.stringify(D || {}));
-    localStorage.setItem("cs2-snapshots", JSON.stringify(S || {}));
-    localStorage.setItem("cs2-settings", JSON.stringify(ST || settings));
-    if (LU) localStorage.setItem("cs2-lastUpdatedAt", LU);
-
-    toast.success("Loaded from cloud", {
-      icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #ff8c00",
-        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-        fontWeight: 600,
-        backdropFilter: "blur(8px)",
-        opacity: 0.95,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    toast.error("Cloud load failed", {
-      icon: <img src="/download.svg" alt="" className="w-4 h-4 opacity-70" />,
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #ff4d4d",
-        boxShadow: "0 0 15px rgba(255,77,77,0.3)",
-        fontWeight: 600,
-        backdropFilter: "blur(8px)",
-        opacity: 0.95,
-      },
-    });
-  }
-}
-
-  /* --------------------------- Load / Save localStorage --------------------------- */
+  /* --------------------------- Load / Save local --------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
     setTabs(JSON.parse(localStorage.getItem("cs2-tabs")) || ["Dashboard"]);
     setData(JSON.parse(localStorage.getItem("cs2-data")) || {});
     setSnapshots(JSON.parse(localStorage.getItem("cs2-snapshots")) || {});
-    setSettings(JSON.parse(localStorage.getItem("cs2-settings")) || DEFAULT_SETTINGS);
+    setSettings(
+      JSON.parse(localStorage.getItem("cs2-settings")) || DEFAULT_SETTINGS
+    );
     setLastUpdatedAt(localStorage.getItem("cs2-lastUpdatedAt") || null);
   }, []);
 
-  useEffect(() => { localStorage.setItem("cs2-tabs", JSON.stringify(tabs)); }, [tabs]);
-  useEffect(() => { localStorage.setItem("cs2-data", JSON.stringify(data)); }, [data]);
-  useEffect(() => { localStorage.setItem("cs2-snapshots", JSON.stringify(snapshots)); }, [snapshots]);
-  useEffect(() => { localStorage.setItem("cs2-settings", JSON.stringify(settings)); }, [settings]);
+  useEffect(() => {
+    localStorage.setItem("cs2-tabs", JSON.stringify(tabs));
+  }, [tabs]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2-data", JSON.stringify(data));
+  }, [data]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2-snapshots", JSON.stringify(snapshots));
+  }, [snapshots]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2-settings", JSON.stringify(settings));
+  }, [settings]);
+
   useEffect(() => {
     if (lastUpdatedAt) localStorage.setItem("cs2-lastUpdatedAt", lastUpdatedAt);
   }, [lastUpdatedAt]);
 
-  /* ------------------------------- Tabs & Rows ------------------------------- */
+  /* ------------------------------ Supabase --------------------------------- */
+  async function saveToCloud() {
+    try {
+      const deviceId = getDeviceId();
+      if (!deviceId) throw new Error("No device id");
+
+      const payload = {
+        tabs,
+        data,
+        snapshots,
+        settings,
+        lastUpdatedAt,
+      };
+
+      const { error } = await supabase
+        .from("user_data")
+        .upsert(
+          {
+            device_id: deviceId,
+            blob: payload,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "device_id" }
+        );
+
+      if (error) throw error;
+
+      toast.success("Synced to cloud", {
+        icon: <img src="/upload.svg" alt="" className="w-4 h-4" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error("Cloud save failed", {
+        icon: <img src="/upload.svg" alt="" className="w-4 h-4 opacity-70" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff4d4d",
+          boxShadow: "0 0 15px rgba(255,77,77,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    }
+  }
+
+  async function loadFromCloud() {
+    try {
+      const deviceId = getDeviceId();
+      if (!deviceId) throw new Error("No device id");
+
+      const { data: rows, error } = await supabase
+        .from("user_data")
+        .select("blob")
+        .eq("device_id", deviceId)
+        .limit(1);
+
+      if (error) throw error;
+
+      const row = rows?.[0];
+      if (!row?.blob) {
+        toast("No cloud data found", {
+          icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
+          style: {
+            background: "#141414",
+            color: "#fff",
+            border: "1px solid #888",
+            boxShadow: "0 0 15px rgba(255,255,255,0.15)",
+            fontWeight: 600,
+            backdropFilter: "blur(8px)",
+            opacity: 0.95,
+          },
+        });
+        return;
+      }
+
+      const {
+        tabs: T,
+        data: D,
+        snapshots: S,
+        settings: ST,
+        lastUpdatedAt: LU,
+      } = row.blob;
+
+      setTabs(T || []);
+      setData(D || {});
+      setSnapshots(S || {});
+      setSettings(ST || settings);
+      setLastUpdatedAt(LU || null);
+
+      localStorage.setItem("cs2-tabs", JSON.stringify(T || []));
+      localStorage.setItem("cs2-data", JSON.stringify(D || {}));
+      localStorage.setItem("cs2-snapshots", JSON.stringify(S || {}));
+      localStorage.setItem("cs2-settings", JSON.stringify(ST || settings));
+      if (LU) localStorage.setItem("cs2-lastUpdatedAt", LU);
+
+      toast.success("Loaded from cloud", {
+        icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error("Cloud load failed", {
+        icon: <img src="/download.svg" alt="" className="w-4 h-4 opacity-70" />,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff4d4d",
+          boxShadow: "0 0 15px rgba(255,77,77,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    }
+  }
+
+  /* ------------------------------ Tabs & Rows ------------------------------- */
   const addTab = () => {
     const name = prompt("New tab name:");
     if (!name) return;
@@ -262,10 +308,10 @@ async function loadFromCloud() {
     setActiveTab("Dashboard");
   };
 
-  /* ------------------------------ Folder Functions ------------------------------ */
   const addFolder = () => {
     const name = prompt("New folder name:");
-    if (!name || tabs.find((t) => typeof t === "object" && t.folder === name)) return;
+    if (!name || tabs.find((t) => typeof t === "object" && t.folder === name))
+      return;
     setTabs([...tabs, { folder: name, tabs: [], open: true }]);
   };
 
@@ -295,7 +341,6 @@ async function loadFromCloud() {
       )
     );
 
-  /* ------------------------------ Remove functions ------------------------------ */
   const removeSubTab = (folderName, subTab) => {
     const subName = getTabName(subTab);
     if (!confirm(`Delete tab "${subName}" from "${folderName}"?`)) return;
@@ -316,7 +361,6 @@ async function loadFromCloud() {
     });
 
     setActiveTab((curr) => (curr === subName ? "Dashboard" : curr));
-    console.log(`🗑 Deleted sub-tab "${subName}" from folder "${folderName}"`);
   };
 
   const removeTabOrFolder = (target) => {
@@ -326,22 +370,21 @@ async function loadFromCloud() {
     }
 
     if (target.tabs && target.tabs.length > 0) {
-      alert(`⚠️ You must delete or move all tabs inside "${target.folder}" before deleting it.`);
+      alert(
+        `⚠️ You must delete or move all tabs inside "${target.folder}" before deleting it.`
+      );
       return;
     }
 
     if (!confirm(`Delete empty folder "${target.folder}"?`)) return;
 
     setTabs((prev) => prev.filter((t) => t.folder !== target.folder));
-    console.log(`🗑 Deleted empty folder "${target.folder}"`);
   };
 
-  /* ----------------------------- Totals per tab ----------------------------- */
-  // Helper: flatten all tab names (excluding "Dashboard")
+  /* --------------------------- Totals per tab ------------------------------- */
   const allTabNames = useMemo(() => {
     const names = [];
     for (const t of tabs) {
-      // keep backward compatibility with older saved structure
       if (typeof t === "string") {
         if (t !== "Dashboard") names.push(t);
         continue;
@@ -358,10 +401,12 @@ async function loadFromCloud() {
 
   useEffect(() => {
     const tmap = {};
-    // Build totals per tabName only (not folders)
     for (const name of allTabNames) {
       const rows = data[name] || [];
-      tmap[name] = rows.reduce((sum, r) => sum + (Number(r.qty || 0) * Number(r.price || 0)), 0);
+      tmap[name] = rows.reduce(
+        (sum, r) => sum + Number(r.qty || 0) * Number(r.price || 0),
+        0
+      );
     }
     setTotals(tmap);
   }, [data, allTabNames]);
@@ -371,57 +416,65 @@ async function loadFromCloud() {
     [totals]
   );
 
-/* -------------------------- Daily snapshots -------------------------- */
-useEffect(() => {
-  const checkSnapshot = async () => {
-    const key = todayKeyLisbon();
-    const passed = hasPassedLisbonHHMM(settings.snapshotTimeHHMM);
-    const alreadyTaken = snapshots["dashboard"]?.dateKey === key;
+  /* ---------------------------- Daily snapshots ----------------------------- */
+  // We persist REAL snapshots as keys: "dashboard_YYYY-MM-DD"
+  // UI ignores simulated snapshots (sim: true)
+  useEffect(() => {
+    const checkSnapshot = async () => {
+      const key = todayKeyLisbon();
+      const passed = hasPassedLisbonHHMM(settings.snapshotTimeHHMM);
 
-    if (!passed || alreadyTaken) return;
+      // prevent duplicate for TODAY
+      const alreadyTaken = Boolean(snapshots[`dashboard_${key}`]);
 
-    while (isRefreshingRef.current) {
-      console.log("⏳ Waiting for refresh loop to finish before snapshot...");
-      await new Promise((r) => setTimeout(r, 5000));
-    }
+      if (!passed || alreadyTaken) return;
 
-    console.log("📸 Taking daily snapshot...");
-    const newSnaps = { ...snapshots };
-    newSnaps["dashboard"] = { value: grandTotal, dateKey: key, ts: Date.now() };
+      // wait for running refresh to finish
+      while (isRefreshingRef.current) {
+        await new Promise((r) => setTimeout(r, 3000));
+      }
 
-    for (const name of allTabNames) {
-      newSnaps[name] = {
-        value: totals[name] || 0,
+      const newSnaps = { ...snapshots };
+      newSnaps[`dashboard_${key}`] = {
+        value: grandTotal,
         dateKey: key,
         ts: Date.now(),
+        sim: false,
       };
-    }
 
-// 🧪 Apply simulated snapshot in-memory only (no persistence)
-setSnapshots(newSnaps);
-console.log("(Sim only) snapshot not saved to localStorage");
+      // (Optional) per-tab snapshots could be added similarly:
+      // for (const name of allTabNames) {
+      //   newSnaps[`${name}_${key}`] = {
+      //     value: totals[name] || 0,
+      //     dateKey: key,
+      //     ts: Date.now(),
+      //     sim: false,
+      //   };
+      // }
 
-    toast.success(`📸 Snapshot saved for ${key}`, {
-      icon: null,
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #ff8c00",
-        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-        fontWeight: 600,
-        backdropFilter: "blur(8px)",
-        opacity: 0.95,
-      },
-      duration: 4000,
-    });
-  };
+      setSnapshots(newSnaps);
+      localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
 
-  // Check once per minute only
-  const interval = setInterval(checkSnapshot, 60 * 1000);
-  return () => clearInterval(interval);
-}, [totals, allTabNames, grandTotal, snapshots, settings.snapshotTimeHHMM]);
+      toast.success(`📸 Snapshot saved for ${key}`, {
+        icon: null,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+        duration: 4000,
+      });
+    };
 
-  /* -------------------------- Auto refresh system -------------------------- */
+    const interval = setInterval(checkSnapshot, 60 * 1000); // check once/minute
+    return () => clearInterval(interval);
+  }, [grandTotal, snapshots, settings.snapshotTimeHHMM /* deps ok */]);
+
+  /* --------------------------- Auto refresh system -------------------------- */
   useEffect(() => {
     if (!tabs.length) return;
     if (refreshTimerRef.current?.running) {
@@ -466,6 +519,7 @@ console.log("(Sim only) snapshot not saved to localStorage");
           await sleep(60000); // recheck every minute
           continue;
         }
+
         isRefreshingRef.current = true;
         setIsLoading(true);
         setApiStatus("stable");
@@ -489,23 +543,25 @@ console.log("(Sim only) snapshot not saved to localStorage");
             const name = row?.name?.trim();
             if (!name) continue;
 
-try {
-  const res = await fetch(`/api/price?name=${encodeURIComponent(name)}`);
+            try {
+              const res = await fetch(
+                `/api/price?name=${encodeURIComponent(name)}`
+              );
 
-  if (res.status === 429) {
-    console.warn("⚠️ Steam API rate limited (429)");
-    setApiStatus("429");
-    await sleep(30000); // 30s cooldown before retry
-    continue;
-  }
+              if (res.status === 429) {
+                console.warn("⚠️ Steam API rate limited (429)");
+                setApiStatus("429");
+                await sleep(30000); // 30s cooldown before retry
+                continue;
+              }
 
-  if (!res.ok) {
-    console.warn("❌ Steam API failed with status", res.status);
-    setApiStatus("down");
-    continue;
-  }
+              if (!res.ok) {
+                console.warn("❌ Steam API failed with status", res.status);
+                setApiStatus("down");
+                continue;
+              }
 
-  const json = await res.json();
+              const json = await res.json();
 
               if (json.ok && json.lowest != null) {
                 const newPrice = Number(json.lowest);
@@ -544,17 +600,17 @@ try {
           console.log(`✅ Finished tab: ${tabName}`);
         }
 
-setLastUpdatedAt(formatLisbonHM());
-localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
-console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
-isRefreshingRef.current = false;
-setIsLoading(false);
+        setLastUpdatedAt(formatLisbonHM());
+        localStorage.setItem("cs2-lastFullRefreshAt", Date.now());
+        console.log(`⏸ Waiting ${intervalMin} min before next refresh cycle…`);
+        isRefreshingRef.current = false;
+        setIsLoading(false);
 
-// ✅ Auto cloud save after each successful refresh
-await saveToCloud();
+        // Auto cloud save after each successful refresh
+        await saveToCloud();
 
-if (apiStatus === "stable") console.log("✅ Steam API stable");
-await sleep(intervalMs);
+        if (apiStatus === "stable") console.log("✅ Steam API stable");
+        await sleep(intervalMs);
       }
     };
 
@@ -567,296 +623,22 @@ await sleep(intervalMs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabs.length, settings.refreshMinutes]);
 
-function BehaviorSettings({ settings, setSettings }) {
-  const [snapshotTime, setSnapshotTime] = useState(settings.snapshotTimeHHMM);
-  const [refreshMinutes, setRefreshMinutes] = useState(settings.refreshMinutes);
+  /* ---------------------------- Settings Panel ------------------------------ */
+  function BehaviorSettings({ settings, setSettings }) {
+    const [snapshotTime, setSnapshotTime] = useState(settings.snapshotTimeHHMM);
+    const [refreshMinutes, setRefreshMinutes] = useState(
+      settings.refreshMinutes
+    );
 
-const handleSave = () => {
-  setSettings((prev) => ({
-    ...prev,
-    snapshotTimeHHMM: snapshotTime,
-    refreshMinutes: Number(refreshMinutes),
-  }));
+    const handleSave = () => {
+      setSettings((prev) => ({
+        ...prev,
+        snapshotTimeHHMM: snapshotTime,
+        refreshMinutes: Number(refreshMinutes),
+      }));
 
-  toast.success("Settings saved successfully", {
-    icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
-    style: {
-      background: "#141414",
-      color: "#fff",
-      border: "1px solid #ff8c00",
-      boxShadow: "0 0 15px rgba(255,140,0,0.25)",
-      fontWeight: 600,
-      backdropFilter: "blur(8px)",
-      opacity: 0.95,
-    },
-  });
-
-  // ✅ Restart app to apply new refresh interval immediately
-  setTimeout(() => {
-    location.reload();
-  }, 1200); // small delay so toast is visible before reload
-};
-
-useEffect(() => {
-  window.toast = (msg) => {
-    // ✅ Settings saved toast
-    if (msg === "settingsSaved") {
       toast.success("Settings saved successfully", {
         icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ff8c00",
-          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-    }
-
-    // ✅ Cloud Save success
-    if (msg === "cloudSaved") {
-      toast.success("Synced to cloud", {
-        icon: <img src="/upload.svg" alt="" className="w-4 h-4" />,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ff8c00",
-          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-    }
-
-    // ✅ Cloud Load success
-    if (msg === "cloudLoaded") {
-      toast.success("Loaded from cloud", {
-        icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ff8c00",
-          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-    }
-
-    // ⚠️ Cloud error (for testing failure visuals)
-    if (msg === "cloudError") {
-      toast.error("Cloud sync failed", {
-        icon: <img src="/upload.svg" alt="" className="w-4 h-4 opacity-70" />,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ff4d4d",
-          boxShadow: "0 0 15px rgba(255,77,77,0.3)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-    }
-
-        // 🟢 API stable
-    if (msg === "apiStable") {
-      toast.success("Steam API stable", {
-        icon: null,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #00cc66",
-          boxShadow: "0 0 15px rgba(0,204,102,0.3)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-    }
-
-    // ⚠️ API rate limited
-    if (msg === "api429") {
-      toast("Steam API rate limited", {
-        icon: null,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ffcc00",
-          boxShadow: "0 0 15px rgba(255,204,0,0.3)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-    }
-
-    // 🔴 API down
-    if (msg === "apiDown") {
-      toast.error("Steam API offline", {
-        icon: null,
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ff4d4d",
-          boxShadow: "0 0 15px rgba(255,77,77,0.3)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-        },
-      });
-    }
-  };
-}, []);
-
-  return (
-    <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-      <h2 className="text-xl font-semibold mb-4">Behavior</h2>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm text-neutral-400 mb-1">
-            Snapshot time (WEST)
-          </label>
-          <input
-            type="time"
-            value={snapshotTime}
-            onChange={(e) => setSnapshotTime(e.target.value)}
-            className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm text-neutral-400 mb-1">
-            Auto refresh (min)
-          </label>
-          <input
-            type="number"
-            min="1"
-            step="1"
-            value={refreshMinutes}
-            onChange={(e) => setRefreshMinutes(e.target.value)}
-            className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end mt-6">
-        <button
-          onClick={handleSave}
-          className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
-        >
-          Save Changes
-        </button>
-      </div>
-    </section>
-  );
-}
-
-  // ✅ Global API simulator — available from anywhere
-useEffect(() => {
-  window.apiSim = (state) => {
-    const valid = ["stable", "429", "down"];
-    if (!valid.includes(state)) {
-      console.warn("Usage: apiSim('stable' | '429' | 'down')");
-      return;
-    }
-
-    setApiStatus(state);
-    console.log(`🔧 API status manually set to: ${state}`);
-
-    // 🔔 Show plain text toasts (no icons)
-    if (state === "stable") {
-      toast.success("Steam API stable", {
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #00cc66",
-          boxShadow: "0 0 15px rgba(0,204,102,0.25)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-          zIndex: 9999,
-        },
-        duration: 2500,
-      });
-    }
-
-    if (state === "429") {
-      toast("Steam API rate limited", {
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ffcc00",
-          boxShadow: "0 0 15px rgba(255,204,0,0.25)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-          zIndex: 9999,
-        },
-        duration: 4000,
-      });
-    }
-
-    if (state === "down") {
-      toast.error("Steam API offline", {
-        style: {
-          background: "#141414",
-          color: "#fff",
-          border: "1px solid #ff4d4d",
-          boxShadow: "0 0 15px rgba(255,77,77,0.25)",
-          fontWeight: 600,
-          backdropFilter: "blur(8px)",
-          opacity: 0.95,
-          zIndex: 9999,
-        },
-        duration: 5000,
-      });
-    }
-  };
-}, []);
-
-  // ✅ Global console command to simulate snapshot
-useEffect(() => {
-  window.snapSim = async (mode = "today") => {
-    const todayKey = todayKeyLisbon();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = todayKeyLisbon(yesterday);
-
-    const newSnaps = { ...snapshots };
-
-    if (mode === "yesterday") {
-      newSnaps[`dashboard_${yesterdayKey}`] = {
-        value: grandTotal * 0.8, // pretend 20% lower baseline
-        dateKey: yesterdayKey,
-        ts: Date.now() - 86400000,
-      };
-      console.log(`📸 Simulated yesterday snapshot (${yesterdayKey}): ${fmtMoney(grandTotal * 0.8)}€`);
-    }
-
-    if (mode === "today") {
-      newSnaps[`dashboard_${todayKey}`] = {
-        value: grandTotal,
-        dateKey: todayKey,
-        ts: Date.now(),
-      };
-      console.log(`📸 Simulated today snapshot (${todayKey}): ${fmtMoney(grandTotal)}€`);
-    }
-
-    setSnapshots(newSnaps);
-    localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
-
-    toast.success(
-      mode === "yesterday"
-        ? "Simulated yesterday snapshot"
-        : "Simulated today snapshot",
-      {
-        icon: null,
         style: {
           background: "#141414",
           color: "#fff",
@@ -866,316 +648,545 @@ useEffect(() => {
           backdropFilter: "blur(8px)",
           opacity: 0.95,
         },
-        duration: 4000,
+      });
+
+      // Ensure the new refresh interval is applied immediately
+      setTimeout(() => {
+        location.reload();
+      }, 1200);
+    };
+
+    useEffect(() => {
+      // keep your toast test hooks
+      window.toast = (msg) => {
+        if (msg === "settingsSaved") {
+          toast.success("Settings saved successfully", {
+            icon: <img src="/save.svg" alt="" className="w-4 h-4" />,
+            style: {
+              background: "#141414",
+              color: "#fff",
+              border: "1px solid #ff8c00",
+              boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+              fontWeight: 600,
+              backdropFilter: "blur(8px)",
+              opacity: 0.95,
+            },
+          });
+        }
+        if (msg === "cloudSaved") {
+          toast.success("Synced to cloud", {
+            icon: <img src="/upload.svg" alt="" className="w-4 h-4" />,
+            style: {
+              background: "#141414",
+              color: "#fff",
+              border: "1px solid #ff8c00",
+              boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+              fontWeight: 600,
+              backdropFilter: "blur(8px)",
+              opacity: 0.95,
+            },
+          });
+        }
+        if (msg === "cloudLoaded") {
+          toast.success("Loaded from cloud", {
+            icon: <img src="/download.svg" alt="" className="w-4 h-4" />,
+            style: {
+              background: "#141414",
+              color: "#fff",
+              border: "1px solid #ff8c00",
+              boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+              fontWeight: 600,
+              backdropFilter: "blur(8px)",
+              opacity: 0.95,
+            },
+          });
+        }
+        if (msg === "cloudError") {
+          toast.error("Cloud sync failed", {
+            icon: <img src="/upload.svg" alt="" className="w-4 h-4 opacity-70" />,
+            style: {
+              background: "#141414",
+              color: "#fff",
+              border: "1px solid #ff4d4d",
+              boxShadow: "0 0 15px rgba(255,77,77,0.3)",
+              fontWeight: 600,
+              backdropFilter: "blur(8px)",
+              opacity: 0.95,
+            },
+          });
+        }
+        if (msg === "apiStable") {
+          toast.success("Steam API stable", {
+            icon: null,
+            style: {
+              background: "#141414",
+              color: "#fff",
+              border: "1px solid #00cc66",
+              boxShadow: "0 0 15px rgba(0,204,102,0.3)",
+              fontWeight: 600,
+              backdropFilter: "blur(8px)",
+              opacity: 0.95,
+            },
+          });
+        }
+        if (msg === "api429") {
+          toast("Steam API rate limited", {
+            icon: null,
+            style: {
+              background: "#141414",
+              color: "#fff",
+              border: "1px solid #ffcc00",
+              boxShadow: "0 0 15px rgba(255,204,0,0.3)",
+              fontWeight: 600,
+              backdropFilter: "blur(8px)",
+              opacity: 0.95,
+            },
+          });
+        }
+        if (msg === "apiDown") {
+          toast.error("Steam API offline", {
+            icon: null,
+            style: {
+              background: "#141414",
+              color: "#fff",
+              border: "1px solid #ff4d4d",
+              boxShadow: "0 0 15px rgba(255,77,77,0.3)",
+              fontWeight: 600,
+              backdropFilter: "blur(8px)",
+              opacity: 0.95,
+            },
+          });
+        }
+      };
+    }, []);
+
+    return (
+      <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-xl font-semibold mb-4">Behavior</h2>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-neutral-400 mb-1">
+              Snapshot time (WEST)
+            </label>
+            <input
+              type="time"
+              value={snapshotTime}
+              onChange={(e) => setSnapshotTime(e.target.value)}
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-neutral-400 mb-1">
+              Auto refresh (min)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={refreshMinutes}
+              onChange={(e) => setRefreshMinutes(e.target.value)}
+              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={handleSave}
+            className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+          >
+            Save Changes
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  /* ----------------------------- Snap simulator ----------------------------- */
+  // For testing only. Writes entries but marks sim:true so UI ignores them.
+  useEffect(() => {
+    window.snapSim = async (mode = "today") => {
+      const todayKey = todayKeyLisbon();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = todayKeyLisbon(yesterday);
+
+      const newSnaps = { ...snapshots };
+
+      if (mode === "yesterday") {
+        newSnaps[`dashboard_${yesterdayKey}`] = {
+          value: grandTotal * 0.8,
+          dateKey: yesterdayKey,
+          ts: Date.now() - 86400000,
+          sim: true,
+        };
+        console.log(
+          `📸 Simulated yesterday snapshot (${yesterdayKey}): ${fmtMoney(
+            grandTotal * 0.8
+          )}€`
+        );
       }
-    );
-  };
-}, [snapshots, grandTotal]);
 
-/* ------------------------------- Color menu ------------------------------- */
-const openColorMenuAtButton = (tab, i, e) => {
-  const trigger = e.currentTarget.getBoundingClientRect();
-  const gap = 4;
+      if (mode === "today") {
+        newSnaps[`dashboard_${todayKey}`] = {
+          value: grandTotal,
+          dateKey: todayKey,
+          ts: Date.now(),
+          sim: true,
+        };
+        console.log(
+          `📸 Simulated today snapshot (${todayKey}): ${fmtMoney(
+            grandTotal
+          )}€`
+        );
+      }
 
-  // Step 1: open immediately below while we measure
-  setColorMenu({
-    open: true,
-    tab,
-    index: i,
-    x: trigger.left,
-    y: trigger.bottom + gap,
-    openAbove: false,
-  });
+      setSnapshots(newSnaps);
+      localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
 
-  // Step 2: on next frame, measure the actual menu height and reposition if needed
-  requestAnimationFrame(() => {
-    const menuEl = document.getElementById("color-menu-portal");
-    if (!menuEl) return;
+      toast.success(
+        mode === "yesterday"
+          ? "Simulated yesterday snapshot"
+          : "Simulated today snapshot",
+        {
+          icon: null,
+          style: {
+            background: "#141414",
+            color: "#fff",
+            border: "1px solid #ff8c00",
+            boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+            fontWeight: 600,
+            backdropFilter: "blur(8px)",
+            opacity: 0.95,
+          },
+          duration: 4000,
+        }
+      );
+    };
+  }, [snapshots, grandTotal]);
 
-    const menuHeight = menuEl.offsetHeight || 200;
-    const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - trigger.bottom;
-    const spaceAbove = trigger.top;
+  /* --------------------------- Color menu helpers --------------------------- */
+  const openColorMenuAtButton = (tab, i, e) => {
+    const trigger = e.currentTarget.getBoundingClientRect();
+    const gap = 4;
 
-    let y = trigger.bottom + gap;
-    let openAbove = false;
+    setColorMenu({
+      open: true,
+      tab,
+      index: i,
+      x: trigger.left,
+      y: trigger.bottom + gap,
+      openAbove: false,
+    });
 
-    if (menuHeight > spaceBelow && spaceAbove > spaceBelow) {
-      // open upward if there's more space above
-      y = trigger.top - menuHeight - gap;
-      openAbove = true;
-    }
+    requestAnimationFrame(() => {
+      const menuEl = document.getElementById("color-menu-portal");
+      if (!menuEl) return;
 
-    setColorMenu((prev) => ({
-      ...prev,
-      y,
-      openAbove,
-    }));
-  });
-};
+      const menuHeight = menuEl.offsetHeight || 200;
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - trigger.bottom;
+      const spaceAbove = trigger.top;
 
-const closeColorMenu = () =>
-  setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
+      let y = trigger.bottom + gap;
+      let openAbove = false;
 
-useEffect(() => {
-  if (!colorMenu.open) return;
+      if (menuHeight > spaceBelow && spaceAbove > spaceBelow) {
+        y = trigger.top - menuHeight - gap;
+        openAbove = true;
+      }
 
-  const onBodyClick = (e) => {
-    const menuEl = document.getElementById("color-menu-portal");
-    if (!menuEl) return;
-    if (menuEl.contains(e.target)) return; // click inside → ignore
-    closeColorMenu();
-  };
-
-  const onScroll = () => closeColorMenu();
-  const onResize = () => closeColorMenu();
-
-  // delay listener to avoid capturing the opening click
-  const t = setTimeout(() => {
-    document.body.addEventListener("click", onBodyClick);
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
-  }, 50);
-
-  return () => {
-    clearTimeout(t);
-    document.body.removeEventListener("click", onBodyClick);
-    window.removeEventListener("scroll", onScroll, true);
-    window.removeEventListener("resize", onResize);
-  };
-}, [colorMenu.open]);
-
-  /* -------------------------- Close folders on outside click -------------------------- */
-useEffect(() => {
-  const handleBodyClick = (e) => {
-    // Ignore clicks inside folders OR inside settings panel
-    if (e.target.closest("[data-folder]") || e.target.closest("[data-settings]")) return;
-
-    setTabs((prev) =>
-      prev.map((t) =>
-        typeof t === "object" && t.open ? { ...t, open: false } : t
-      )
-    );
+      setColorMenu((prev) => ({
+        ...prev,
+        y,
+        openAbove,
+      }));
+    });
   };
 
-  document.body.addEventListener("click", handleBodyClick);
-  return () => document.body.removeEventListener("click", handleBodyClick);
-}, []);
+  const closeColorMenu = () =>
+    setColorMenu({ open: false, tab: null, index: null, x: 0, y: 0 });
 
-  /* ------------------------------- Render UI ------------------------------- */
-const dashHistory = Object.values(snapshots)
-  .filter((s) => s && s.value && s.dateKey && s.dateKey.startsWith("202"))
-  .sort((a, b) => b.ts - a.ts);
+  useEffect(() => {
+    if (!colorMenu.open) return;
 
-const lastSnap = dashHistory[0];
-const prevSnap = dashHistory[1];
+    const onBodyClick = (e) => {
+      const menuEl = document.getElementById("color-menu-portal");
+      if (!menuEl) return;
+      if (menuEl.contains(e.target)) return;
+      closeColorMenu();
+    };
 
-const dashPct =
-  lastSnap && prevSnap && prevSnap.value > 0
-    ? ((lastSnap.value - prevSnap.value) / prevSnap.value) * 100
-    : 0;
+    const onScroll = () => closeColorMenu();
+    const onResize = () => closeColorMenu();
 
+    const t = setTimeout(() => {
+      document.body.addEventListener("click", onBodyClick);
+      window.addEventListener("scroll", onScroll, true);
+      window.addEventListener("resize", onResize);
+    }, 50);
+
+    return () => {
+      clearTimeout(t);
+      document.body.removeEventListener("click", onBodyClick);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [colorMenu.open]);
+
+  /* ----------------------- Close folders on outside click ------------------- */
+  useEffect(() => {
+    const handleBodyClick = (e) => {
+      if (e.target.closest("[data-folder]") || e.target.closest("[data-settings]"))
+        return;
+
+      setTabs((prev) =>
+        prev.map((t) =>
+          typeof t === "object" && t.open ? { ...t, open: false } : t
+        )
+      );
+    };
+
+    document.body.addEventListener("click", handleBodyClick);
+    return () => document.body.removeEventListener("click", handleBodyClick);
+  }, []);
+
+  /* --------------------------- Snapshot % for UI ---------------------------- */
+  // Collect only REAL dashboard snapshots (sim: false)
+  const dashHistory = Object.entries(snapshots)
+    .filter(
+      ([key, s]) =>
+        key.startsWith("dashboard_") &&
+        s &&
+        s.value != null &&
+        s.dateKey &&
+        !s.sim
+    )
+    .map(([_, s]) => s)
+    .sort((a, b) => b.ts - a.ts); // newest first
+
+  const currentSnap = dashHistory[0];
+  const prevSnap = dashHistory[1];
+
+  // Always show % relative to the previous real snapshot
+  const dashPct =
+    currentSnap && prevSnap && prevSnap.value > 0
+      ? ((currentSnap.value - prevSnap.value) / prevSnap.value) * 100
+      : 0;
+
+  /* --------------------------------- Render -------------------------------- */
   return (
     <div className="min-h-screen text-orange-50 font-sans bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
-<header className="sticky top-0 z-50 px-6 pt-4 pb-3 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:backdrop-blur-md">
-  <div className="grid grid-cols-3 items-center">
-    {/* LEFT: Logo + info */}
-    <div className="justify-self-start flex flex-col">
-      <div className="flex items-center gap-3">
-        <img
-          src="/logo.png"
-          alt="CS2 Prices Logo"
-          className="w-[40px] h-[40px] object-contain"
-        />
-        <h1 className="text-2xl font-extrabold text-orange-400 tracking-wide">
-          CS2 Prices
-        </h1>
-      </div>
+      {/* Header */}
+      <header className="sticky top-0 z-50 px-6 pt-4 pb-3 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:backdrop-blur-md">
+        <div className="grid grid-cols-3 items-center">
+          {/* LEFT: Logo + info */}
+          <div className="justify-self-start flex flex-col">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo.png"
+                alt="CS2 Prices Logo"
+                className="w-[40px] h-[40px] object-contain"
+              />
+              <h1 className="text-2xl font-extrabold text-orange-400 tracking-wide">
+                CS2 Prices
+              </h1>
+            </div>
 
-      <div className="mt-1 text-xs text-neutral-400">
-        {lastUpdatedAt
-          ? `Last updated at ${lastUpdatedAt} WEST`
-          : "Waiting for first auto refresh…"}
-      </div>
+            <div className="mt-1 text-xs text-neutral-400">
+              {lastUpdatedAt
+                ? `Last updated at ${lastUpdatedAt} WEST`
+                : "Waiting for first auto refresh…"}
+            </div>
 
-      <div className="h-[18px] flex items-center gap-2 mt-1 text-xs text-neutral-400 transition-all duration-500">
-        {isLoading ? (
-          <div className="flex items-center gap-1 text-orange-400">
-            <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
-            <span>Fetching prices…</span>
+            <div className="h-[18px] flex items-center gap-2 mt-1 text-xs text-neutral-400 transition-all duration-500">
+              {isLoading ? (
+                <div className="flex items-center gap-1 text-orange-400">
+                  <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Fetching prices…</span>
+                </div>
+              ) : (
+                <div
+                  className={`flex items-center gap-1 ${
+                    apiStatus === "stable"
+                      ? "text-green-400"
+                      : apiStatus === "429"
+                      ? "text-yellow-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      apiStatus === "stable"
+                        ? "bg-green-500"
+                        : apiStatus === "429"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                    }`}
+                  ></div>
+                  <span>
+                    {apiStatus === "stable"
+                      ? "Steam API stable"
+                      : apiStatus === "429"
+                      ? "Rate limited"
+                      : "Steam offline"}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
-          <div
-            className={`flex items-center gap-1 ${
-              apiStatus === "stable"
-                ? "text-green-400"
-                : apiStatus === "429"
-                ? "text-yellow-400"
-                : "text-red-400"
-            }`}
-          >
-            <div
-              className={`w-3 h-3 rounded-full ${
-                apiStatus === "stable"
-                  ? "bg-green-500"
-                  : apiStatus === "429"
-                  ? "bg-yellow-500"
-                  : "bg-red-500"
-              }`}
-            ></div>
-            <span>
-              {apiStatus === "stable"
-                ? "Steam API stable"
-                : apiStatus === "429"
-                ? "Rate limited"
-                : "Steam offline"}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
 
-    {/* CENTER: Dashboard button */}
-    <div className="justify-self-center">
-      <button
-        onClick={() => {
-          setActiveTab("Dashboard");
-          setShowSettings(false);
-        }}
-        className={`group relative px-8 py-2.5 text-base font-extrabold tracking-wide rounded-full transition-all duration-300
+          {/* CENTER: Dashboard button */}
+          <div className="justify-self-center">
+            <button
+              onClick={() => {
+                setActiveTab("Dashboard");
+                setShowSettings(false);
+              }}
+              className={`group relative px-8 py-2.5 text-base font-extrabold tracking-wide rounded-full transition-all duration-300
           ${
             activeTab === "Dashboard"
               ? "text-white bg-gradient-to-r from-orange-600 to-orange-500 shadow-[0_0_20px_rgba(255,165,0,0.4)] scale-[1.05]"
               : "text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-orange-400 hover:scale-[1.03] hover:shadow-[0_0_12px_rgba(255,165,0,0.3)]"
           }`}
-      >
-        <span className="relative z-10">Dashboard</span>
-        {activeTab === "Dashboard" && (
-          <span className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl animate-pulse" />
-        )}
-      </button>
-    </div>
+            >
+              <span className="relative z-10">Dashboard</span>
+              {activeTab === "Dashboard" && (
+                <span className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl animate-pulse" />
+              )}
+            </button>
+          </div>
 
-    {/* RIGHT: Add + Folder + Settings */}
-    <div className="justify-self-end flex items-center gap-3">
-      <button
-        onClick={addTab}
-        className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
-        title="Add Tab"
-      >
-        ＋ Add Tab
-      </button>
+          {/* RIGHT: Add + Folder + Settings */}
+          <div className="justify-self-end flex items-center gap-3">
+            <button
+              onClick={addTab}
+              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+              title="Add Tab"
+            >
+              ＋ Add Tab
+            </button>
 
-      <button
-        onClick={addFolder}
-        className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
-        title="Add Folder"
-      >
-        ＋ Add Folder
-      </button>
+            <button
+              onClick={addFolder}
+              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+              title="Add Folder"
+            >
+              ＋ Add Folder
+            </button>
 
-      <button
-        onClick={() => {
-          setShowSettings((s) => !s);
-          setActiveTab("Dashboard");
-        }}
-        className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-all border border-neutral-700 hover:border-orange-500 flex items-center justify-center"
-        title="Settings"
-      >
-        <img
-          src="/settings.svg"
-          alt="Settings"
-          className="w-5 h-5 opacity-80 hover:opacity-100 transition-all"
-        />
-      </button>
-    </div>
-  </div>
-</header>
+            <button
+              onClick={() => {
+                setShowSettings((s) => !s);
+                setActiveTab("Dashboard");
+              }}
+              className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-all border border-neutral-700 hover:border-orange-500 flex items-center justify-center"
+              title="Settings"
+            >
+              <img
+                src="/settings.svg"
+                alt="Settings"
+                className="w-5 h-5 opacity-80 hover:opacity-100 transition-all"
+              />
+            </button>
+          </div>
+        </div>
+      </header>
 
-      {/* Horizontal Tabs with Folder Dropdowns + 50x50 images */}
+      {/* Tab strip */}
       {!showSettings && (
         <nav className="sticky top-[112px] z-40 flex flex-wrap items-center gap-2 px-6 py-3 bg-neutral-900/75 border-b border-neutral-800 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
           {tabs.map((t, idx) => {
             // Folder
             if (typeof t === "object" && t.folder) {
               return (
-                <div key={`folder-${t.folder}-${idx}`} className="relative" data-folder>
-<div
-  onClick={(e) => {
-    e.stopPropagation();
-    toggleFolder(t.folder);
-  }}
-  className={`flex items-center px-3 py-2 rounded-lg cursor-pointer font-semibold tracking-wide transition-all duration-300 ${
-    t.open
-      ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
-      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
-  }`}
->
+                <div
+                  key={`folder-${t.folder}-${idx}`}
+                  className="relative"
+                  data-folder
+                >
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFolder(t.folder);
+                    }}
+                    className={`flex items-center px-3 py-2 rounded-lg cursor-pointer font-semibold tracking-wide transition-all duration-300 ${
+                      t.open
+                        ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
+                        : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
+                    }`}
+                  >
                     <span className="mr-1 font-medium">{t.folder}</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className={`h-3 w-3 transition-transform ${t.open ? "rotate-180" : ""}`}
+                      className={`h-3 w-3 transition-transform ${
+                        t.open ? "rotate-180" : ""
+                      }`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                       strokeWidth={2}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </div>
 
-                  {/* Dropdown items */}
                   {t.open && (
-<div
-  onClick={(e) => e.stopPropagation()}
-  className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 inline-block"
-  style={{
-    width: "max-content",
-    whiteSpace: "nowrap",
-    maxWidth: "95vw",
-  }}
->
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 inline-block"
+                      style={{
+                        width: "max-content",
+                        whiteSpace: "nowrap",
+                        maxWidth: "95vw",
+                      }}
+                    >
                       <div className="flex flex-col py-1">
                         {(t.tabs || []).map((sub, i) => {
                           const subName = getTabName(sub);
-                          const subImg = typeof sub === "object" ? sub.image : null;
+                          const subImg =
+                            typeof sub === "object" ? sub.image : null;
                           const active = activeTab === subName;
 
                           return (
                             <div
                               key={`sub-${subName}-${i}`}
                               onClick={() => setActiveTab(subName)}
-className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-pointer transition-all duration-200 ${
-  active
-    ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white"
-    : "hover:bg-neutral-800 text-neutral-300 hover:text-orange-400"
-}`}
+                              className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-pointer transition-all duration-200 ${
+                                active
+                                  ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white"
+                                  : "hover:bg-neutral-800 text-neutral-300 hover:text-orange-400"
+                              }`}
                             >
-                              {/* left: icon + name */}
                               <div className="flex items-center gap-2">
                                 {subImg && (
-  <img
-    src={subImg}
-    alt=""
-    className="w-[28px] h-[28px] object-contain mr-2"
-  />
-)}
-<span
-  className="block break-words leading-tight"
-  style={{
-    whiteSpace: "normal",
-    lineClamp: 2,
-    display: "-webkit-box",
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: "vertical",
-    overflow: "hidden",
-  }}
->
-  {subName}
-</span>
+                                  <img
+                                    src={subImg}
+                                    alt=""
+                                    className="w-[28px] h-[28px] object-contain mr-2"
+                                  />
+                                )}
+                                <span
+                                  className="block break-words leading-tight"
+                                  style={{
+                                    whiteSpace: "normal",
+                                    lineClamp: 2,
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  {subName}
+                                </span>
                               </div>
 
-                              {/* right: delete */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1200,16 +1211,16 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                           ＋ Add Tab
                         </button>
 
-<button
-  onClick={(e) => {
-    e.stopPropagation();
-    removeTabOrFolder(t);
-  }}
-  className="flex items-center gap-2 text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
->
-  <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
-  <span>Delete Folder</span>
-</button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeTabOrFolder(t);
+                          }}
+                          className="flex items-center gap-2 text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
+                        >
+                          <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
+                          <span>Delete Folder</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1217,30 +1228,30 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
               );
             }
 
-            // Normal tab (string or {name,image})
+            // Normal tab
             const name = getTabName(t);
             if (name === "Dashboard") return null;
             const img = typeof t === "object" ? t.image : null;
             const isActive = activeTab === name;
 
             return (
-<div
-  key={`tab-${name}-${idx}`}
-  onClick={() => setActiveTab(name)}
-  className={`relative px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 font-semibold tracking-wide transition-all duration-300 ${
-    isActive
-      ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
-      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
-  }`}
->
+              <div
+                key={`tab-${name}-${idx}`}
+                onClick={() => setActiveTab(name)}
+                className={`relative px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 font-semibold tracking-wide transition-all duration-300 ${
+                  isActive
+                    ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
+                    : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
+                }`}
+              >
                 {img && (
-  <img
-    src={img}
-    alt=""
-    className="w-[28px] h-[28px] object-contain mr-2"
-  />
-)}
-<span>{name}</span>
+                  <img
+                    src={img}
+                    alt=""
+                    className="w-[28px] h-[28px] object-contain mr-2"
+                  />
+                )}
+                <span>{name}</span>
 
                 <button
                   onClick={(e) => {
@@ -1258,6 +1269,7 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
         </nav>
       )}
 
+      {/* Main */}
       <main className="p-6">
         {/* Dashboard */}
         {activeTab === "Dashboard" && !showSettings && (
@@ -1266,108 +1278,120 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <div className="text-sm text-neutral-400">Inventory Value</div>
-                  <div className="text-3xl font-extrabold text-orange-400">{fmtMoney(grandTotal)}€</div>
+                  <div className="text-3xl font-extrabold text-orange-400">
+                    {fmtMoney(grandTotal)}€
+                  </div>
                 </div>
-<div className="text-[23px] font-medium tracking-tight">
-  <span
-    className={
-      dashPct > 0
-        ? "text-green-400 drop-shadow-[0_0_6px_rgba(0,255,0,0.2)]"
-        : dashPct < 0
-        ? "text-red-400 drop-shadow-[0_0_6px_rgba(255,0,0,0.2)]"
-        : "text-neutral-300"
-    }
-  >
-    {dashPct > 0
-      ? `It went up by +${Math.abs(dashPct).toFixed(2)}%.`
-      : dashPct < 0
-      ? `It went down by -${Math.abs(dashPct).toFixed(2)}%.`
-      : "It stayed the same since last snapshot."}
-  </span>
-</div>
+
+                {/* Only the % text, slightly larger than base */}
+                <div className="text-[15px] font-medium tracking-tight">
+                  <span
+                    className={
+                      dashPct > 0
+                        ? "text-green-400 drop-shadow-[0_0_6px_rgba(0,255,0,0.2)]"
+                        : dashPct < 0
+                        ? "text-red-400 drop-shadow-[0_0_6px_rgba(255,0,0,0.2)]"
+                        : "text-neutral-300"
+                    }
+                  >
+                    {dashPct > 0
+                      ? `It went up by +${Math.abs(dashPct).toFixed(2)}%.`
+                      : dashPct < 0
+                      ? `It went down by -${Math.abs(dashPct).toFixed(2)}%.`
+                      : "It stayed the same since last snapshot."}
+                  </span>
+                </div>
               </div>
             </div>
 
+            {/* Totals by tab */}
             <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 shadow">
               {tabs.map((t, idx) => {
-  // normal tab (string)
-  if (typeof t === "string") {
-    if (t === "Dashboard") return null;
-    return (
-      <div
-        key={`total-${t}-${idx}`}
-        className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0"
-      >
-        <div className="flex items-center gap-2">
-          {t.image && (
-            <img
-              src={t.image}
-              alt=""
-              className="w-[28px] h-[28px] object-contain"
-            />
-          )}
-          <span>{t}</span>
-        </div>
-        <span className="text-green-400">{fmtMoney(totals[t] || 0)}€</span>
-      </div>
-    );
-  }
+                // normal tab (string)
+                if (typeof t === "string") {
+                  if (t === "Dashboard") return null;
+                  return (
+                    <div
+                      key={`total-${t}-${idx}`}
+                      className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0"
+                    >
+                      <div className="flex items-center gap-2">
+                        {t.image && (
+                          <img
+                            src={t.image}
+                            alt=""
+                            className="w-[28px] h-[28px] object-contain"
+                          />
+                        )}
+                        <span>{t}</span>
+                      </div>
+                      <span className="text-green-400">
+                        {fmtMoney(totals[t] || 0)}€
+                      </span>
+                    </div>
+                  );
+                }
 
-  // folder type
-  if (t.folder) {
-    return (
-      <div key={`total-folder-${t.folder}-${idx}`} className="mb-2">
-        <div className="text-neutral-300 font-semibold mb-1">{t.folder}</div>
-        {(t.tabs || []).map((sub, i) => {
-          const subName = getTabName(sub);
-          const subImg = typeof sub === "object" ? sub.image : null;
-          return (
-            <div
-              key={`total-sub-${subName}-${i}`}
-              className="flex justify-between items-center py-1 pl-4 border-b border-neutral-800 last:border-0"
-            >
-              <div className="flex items-center gap-2">
-                {subImg && (
-                  <img
-                    src={subImg}
-                    alt=""
-                    className="w-[28px] h-[28px] object-contain"
-                  />
-                )}
-                <span>{subName}</span>
-              </div>
-              <span className="text-green-400">
-                {fmtMoney(totals[subName] || 0)}€
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
+                // folder type
+                if (t.folder) {
+                  return (
+                    <div key={`total-folder-${t.folder}-${idx}`} className="mb-2">
+                      <div className="text-neutral-300 font-semibold mb-1">
+                        {t.folder}
+                      </div>
+                      {(t.tabs || []).map((sub, i) => {
+                        const subName = getTabName(sub);
+                        const subImg =
+                          typeof sub === "object" ? sub.image : null;
+                        return (
+                          <div
+                            key={`total-sub-${subName}-${i}`}
+                            className="flex justify-between items-center py-1 pl-4 border-b border-neutral-800 last:border-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              {subImg && (
+                                <img
+                                  src={subImg}
+                                  alt=""
+                                  className="w-[28px] h-[28px] object-contain"
+                                />
+                              )}
+                              <span>{subName}</span>
+                            </div>
+                            <span className="text-green-400">
+                              {fmtMoney(totals[subName] || 0)}€
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
 
-  // fallback (object tab with image)
-  const name = getTabName(t);
-  const img = typeof t === "object" ? t.image : null;
-  return (
-    <div
-      key={`total-${name}-${idx}`}
-      className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0"
-    >
-      <div className="flex items-center gap-2">
-        {img && (
-          <img
-            src={img}
-            alt=""
-            className="w-[28px] h-[28px] object-contain"
-          />
-        )}
-        <span>{name}</span>
-      </div>
-      <span className="text-green-400">{fmtMoney(totals[name] || 0)}€</span>
-    </div>
-  );
-})}
+                // fallback (object tab with image)
+                const name = getTabName(t);
+                const img = typeof t === "object" ? t.image : null;
+                return (
+                  <div
+                    key={`total-${name}-${idx}`}
+                    className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      {img && (
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-[28px] h-[28px] object-contain"
+                        />
+                      )}
+                      <span>{name}</span>
+                    </div>
+                    <span className="text-green-400">
+                      {fmtMoney(totals[name] || 0)}€
+                    </span>
+                  </div>
+                );
+              })}
 
               <div className="flex justify-between mt-4 text-lg font-bold">
                 <span>Total Inventory</span>
@@ -1378,8 +1402,8 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
         )}
 
         {/* Settings */}
-{showSettings && (
-  <div className="max-w-3xl mx-auto space-y-6" data-settings>
+        {showSettings && (
+          <div className="max-w-3xl mx-auto space-y-6" data-settings>
             {/* Rarity Colors */}
             <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
               <h2 className="text-xl font-semibold mb-4">Rarity Colors</h2>
@@ -1430,48 +1454,49 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                   </div>
                 ))}
               </div>
-<button
-  onClick={() =>
-    setSettings((p) => ({
-      ...p,
-      colors: [...p.colors, { name: "New", hex: "#ffffff" }],
-    }))
-  }
-  className="mt-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
->
-  ＋ Add Color
-</button>
+              <button
+                onClick={() =>
+                  setSettings((p) => ({
+                    ...p,
+                    colors: [...p.colors, { name: "New", hex: "#ffffff" }],
+                  }))
+                }
+                className="mt-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/40 transition-all text-sm"
+              >
+                ＋ Add Color
+              </button>
             </section>
 
-{/* Behavior Settings */}
-<BehaviorSettings settings={settings} setSettings={setSettings} />
+            {/* Behavior Settings */}
+            <BehaviorSettings settings={settings} setSettings={setSettings} />
 
-{/* Cloud Sync Controls */}
-<section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
-  <h2 className="text-xl font-semibold mb-4">Cloud Sync</h2>
-  <p className="text-sm text-neutral-400 mb-3">
-    Your data automatically saves to Supabase after every price refresh.
-    You can also manually load or save your current data below.
-  </p>
+            {/* Cloud Sync Controls */}
+            <section className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5">
+              <h2 className="text-xl font-semibold mb-4">Cloud Sync</h2>
+              <p className="text-sm text-neutral-400 mb-3">
+                Your data automatically saves to Supabase after every price
+                refresh. You can also manually load or save your current data
+                below.
+              </p>
 
-  <div className="flex gap-3">
-    <button
-      onClick={loadFromCloud}
-      className="flex-1 px-3 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500 transition-all"
-    >
-      Load Cloud
-    </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={loadFromCloud}
+                  className="flex-1 px-3 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-orange-500 transition-all"
+                >
+                  Load Cloud
+                </button>
 
-    <button
-      onClick={saveToCloud}
-      className="flex-1 px-3 py-2 text-sm rounded-lg bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold shadow-md hover:shadow-orange-500/40 transition-all"
-    >
-      Save Cloud
-    </button>
-  </div>
-</section>
-</div>
-)}
+                <button
+                  onClick={saveToCloud}
+                  className="flex-1 px-3 py-2 text-sm rounded-lg bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold shadow-md hover:shadow-orange-500/40 transition-all"
+                >
+                  Save Cloud
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
 
         {/* Active Tab Table */}
         {!showSettings && activeTab !== "Dashboard" && (
@@ -1486,7 +1511,13 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                       ...data,
                       [activeTab]: [
                         ...rows,
-                        { name: "", qty: 1, price: 0, colorHex: "", locked: false },
+                        {
+                          name: "",
+                          qty: 1,
+                          price: 0,
+                          colorHex: "",
+                          locked: false,
+                        },
                       ],
                     });
                   }
@@ -1537,58 +1568,64 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                         style={tint ? { backgroundColor: tint } : {}}
                         className="border-b border-neutral-800 hover:bg-neutral-800/40 transition"
                       >
+                        <td className="p-2 overflow-visible">
+                          <div className="flex items-center gap-2 flex-nowrap overflow-visible">
+                            {/* Color picker button */}
+                            <button
+                              type="button"
+                              onClick={(e) =>
+                                openColorMenuAtButton(activeTab, i, e)
+                              }
+                              className="h-4 w-4 rounded border border-neutral-700 shrink-0"
+                              style={{
+                                backgroundColor: row.colorHex || "transparent",
+                              }}
+                              title="Set color"
+                            />
 
-<td className="p-2 overflow-visible">
-  <div className="flex items-center gap-2 flex-nowrap overflow-visible">
-    {/* Color picker button */}
-    <button
-      type="button"
-      onClick={(e) => openColorMenuAtButton(activeTab, i, e)}
-      className="h-4 w-4 rounded border border-neutral-700 shrink-0"
-      style={{ backgroundColor: row.colorHex || "transparent" }}
-      title="Set color"
-    />
+                            {/* Item name input */}
+                            <input
+                              value={row.name || ""}
+                              disabled={row.locked}
+                              onChange={(e) => {
+                                const rows = [...(data[activeTab] || [])];
+                                rows[i].name = e.target.value;
+                                setData({ ...data, [activeTab]: rows });
+                              }}
+                              placeholder="Item name"
+                              className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-orange-500 outline-none flex-1"
+                            />
 
-    {/* Item name input */}
-    <input
-      value={row.name || ""}
-      disabled={row.locked}
-      onChange={(e) => {
-        const rows = [...(data[activeTab] || [])];
-        rows[i].name = e.target.value;
-        setData({ ...data, [activeTab]: rows });
-      }}
-      placeholder="Item name"
-      className="bg-neutral-800 text-gray-100 px-2 py-1 rounded border border-neutral-700 focus:border-orange-500 outline-none flex-1"
-    />
-
-{/* Steam Market icon (link) */}
-{row.name && row.name.trim() !== "" && (
-  <a
-    href={`https://steamcommunity.com/market/listings/730/${encodeURIComponent(
-      row.name.trim()
-    )}`}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="flex items-center justify-center text-orange-400 hover:scale-110 transition-transform"
-    title="Open on Steam Market"
-  >
-    <img
-      src="/link.svg"
-      alt="Steam Market link"
-      className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
-    />
-  </a>
-)}
-  </div>
-</td>
+                            {/* Steam Market icon (link) */}
+                            {row.name && row.name.trim() !== "" && (
+                              <a
+                                href={`https://steamcommunity.com/market/listings/730/${encodeURIComponent(
+                                  row.name.trim()
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center text-orange-400 hover:scale-110 transition-transform"
+                                title="Open on Steam Market"
+                              >
+                                <img
+                                  src="/link.svg"
+                                  alt="Steam Market link"
+                                  className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+                                />
+                              </a>
+                            )}
+                          </div>
+                        </td>
 
                         <td className="p-2 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => {
                                 const rows = [...(data[activeTab] || [])];
-                                rows[i].qty = Math.max(0, (rows[i].qty || 0) - 1);
+                                rows[i].qty = Math.max(
+                                  0,
+                                  (rows[i].qty || 0) - 1
+                                );
                                 setData({ ...data, [activeTab]: rows });
                               }}
                               className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300"
@@ -1621,20 +1658,20 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                           </div>
                         </td>
 
-{/* Price (€) */}
-<td className="p-2 text-center font-bold text-black">
-  {fmtMoney(row.price || 0)}
-</td>
+                        {/* Price (€) */}
+                        <td className="p-2 text-center font-bold text-black">
+                          {fmtMoney(row.price || 0)}
+                        </td>
 
-{/* Fluctuation % */}
-<td className={`p-2 text-center font-bold ${color}`}>
-  {fluctDisplay}
-</td>
+                        {/* Fluctuation % */}
+                        <td className={`p-2 text-center font-bold ${color}`}>
+                          {fluctDisplay}
+                        </td>
 
-{/* Total (€) */}
-<td className="p-2 text-center font-bold text-black">
-  {fmtMoney(total)}
-</td>
+                        {/* Total (€) */}
+                        <td className="p-2 text-center font-bold text-black">
+                          {fmtMoney(total)}
+                        </td>
 
                         <td className="p-2 text-center">
                           <button
@@ -1646,19 +1683,19 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                             className="text-neutral-300 hover:text-orange-400"
                             title="Lock row"
                           >
-{row.locked ? (
-  <img
-    src="/lock.svg"
-    alt="Locked"
-    className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
-  />
-) : (
-  <img
-    src="/unlock.svg"
-    alt="Unlocked"
-    className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
-  />
-)}
+                            {row.locked ? (
+                              <img
+                                src="/lock.svg"
+                                alt="Locked"
+                                className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+                              />
+                            ) : (
+                              <img
+                                src="/unlock.svg"
+                                alt="Unlocked"
+                                className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+                              />
+                            )}
                           </button>
                           <button
                             onClick={() => {
@@ -1671,10 +1708,10 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
                             title="Delete row"
                           >
                             <img
-  src="/trash.svg"
-  alt="Delete"
-  className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
-/>
+                              src="/trash.svg"
+                              alt="Delete"
+                              className="w-4 h-4 opacity-80 hover:opacity-100 hover:drop-shadow-[0_0_6px_#ff8c00] transition-all"
+                            />
                           </button>
                         </td>
                       </tr>
@@ -1689,20 +1726,22 @@ className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-p
 
       {/* Color picker menu portal */}
       {colorMenu.open && (
-<div
-  id="color-menu-portal"
-  className={`fixed z-50 transition-transform duration-150 ease-out transform ${
-    colorMenu.openAbove
-      ? "origin-bottom translate-y-1 animate-[appear-up_0.15s_ease-out]"
-      : "origin-top -translate-y-1 animate-[appear-down_0.15s_ease-out]"
-  }`}
-  style={{
-    top: colorMenu.y,
-    left: colorMenu.x,
-  }}
->
-  <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
-    <div className="text-xs text-neutral-400 px-1 pb-1">Choose color</div>
+        <div
+          id="color-menu-portal"
+          className={`fixed z-50 transition-transform duration-150 ease-out transform ${
+            colorMenu.openAbove
+              ? "origin-bottom translate-y-1 animate-[appear-up_0.15s_ease-out]"
+              : "origin-top -translate-y-1 animate-[appear-down_0.15s_ease-out]"
+          }`}
+          style={{
+            top: colorMenu.y,
+            left: colorMenu.x,
+          }}
+        >
+          <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-lg p-2 min-w-[180px]">
+            <div className="text-xs text-neutral-400 px-1 pb-1">
+              Choose color
+            </div>
             <button
               onClick={() => {
                 const rows = [...(data[colorMenu.tab] || [])];
