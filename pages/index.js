@@ -582,6 +582,18 @@ toast.success("Settings saved successfully", {
 };
 
 useEffect(() => {
+  // Developer console simulation for API states
+  window.apiSim = (state) => {
+    if (!["stable", "429", "down"].includes(state)) {
+      console.warn("Usage: apiSim('stable' | '429' | 'down')");
+      return;
+    }
+    setApiStatus(state);
+    console.log(`🔧 API status manually set to: ${state}`);
+  };
+}, []);
+
+useEffect(() => {
   window.toast = (msg) => {
     // ✅ Settings saved toast
     if (msg === "settingsSaved") {
