@@ -581,6 +581,25 @@ toast.success("Settings saved successfully", {
 });
 };
 
+  useEffect(() => {
+  // Global console command for API state simulation
+  window.apiSim = (state) => {
+    const valid = ["stable", "429", "down"];
+    if (!valid.includes(state)) {
+      console.warn("Usage: apiSim('stable' | '429' | 'down')");
+      return;
+    }
+
+    setApiStatus(state);
+    console.log(`🔧 API status manually set to: ${state}`);
+
+    // 🔔 Trigger corresponding toast
+    if (state === "stable") window.toast("apiStable");
+    if (state === "429") window.toast("api429");
+    if (state === "down") window.toast("apiDown");
+  };
+}, []);
+
 useEffect(() => {
   window.toast = (msg) => {
     // ✅ Settings saved toast
@@ -650,7 +669,6 @@ useEffect(() => {
         // 🟢 API stable
     if (msg === "apiStable") {
       toast.success("Steam API stable", {
-        icon: <img src="/check.svg" alt="" className="w-4 h-4" />,
         style: {
           background: "#141414",
           color: "#fff",
@@ -666,7 +684,6 @@ useEffect(() => {
     // ⚠️ API rate limited
     if (msg === "api429") {
       toast("Steam API rate limited", {
-        icon: <img src="/warning.svg" alt="" className="w-4 h-4" />,
         style: {
           background: "#141414",
           color: "#fff",
@@ -682,7 +699,6 @@ useEffect(() => {
     // 🔴 API down
     if (msg === "apiDown") {
       toast.error("Steam API offline", {
-        icon: <img src="/error.svg" alt="" className="w-4 h-4 opacity-80" />,
         style: {
           background: "#141414",
           color: "#fff",
@@ -694,25 +710,6 @@ useEffect(() => {
         },
       });
     }
-  };
-}, []);
-
-useEffect(() => {
-  // Global console command for API state simulation
-  window.apiSim = (state) => {
-    const valid = ["stable", "429", "down"];
-    if (!valid.includes(state)) {
-      console.warn("Usage: apiSim('stable' | '429' | 'down')");
-      return;
-    }
-
-    setApiStatus(state);
-    console.log(`🔧 API status manually set to: ${state}`);
-
-    // 🔔 Trigger corresponding toast
-    if (state === "stable") window.toast("apiStable");
-    if (state === "429") window.toast("api429");
-    if (state === "down") window.toast("apiDown");
   };
 }, []);
 
