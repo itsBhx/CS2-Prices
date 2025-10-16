@@ -804,68 +804,75 @@ export default function Home() {
     );
   }
 
-  /* ----------------------------- Snap simulator ----------------------------- */
-  // For testing only. Writes entries but marks sim:true so UI ignores them.
-  useEffect(() => {
-    window.snapSim = async (mode = "today") => {
-      const todayKey = todayKeyLisbon();
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayKey = todayKeyLisbon(yesterday);
+/* ----------------------------- Snap simulator ----------------------------- */
+// For testing snapshot changes from console
+useEffect(() => {
+  window.snapSim = async (mode = "today") => {
+    const todayKey = todayKeyLisbon();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = todayKeyLisbon(yesterday);
 
-      const newSnaps = { ...snapshots };
+    const newSnaps = { ...snapshots };
 
-      if (mode === "yesterday") {
-        newSnaps[`dashboard_${yesterdayKey}`] = {
-          value: grandTotal * 0.8,
-          dateKey: yesterdayKey,
-          ts: Date.now() - 86400000,
-          sim: true,
-        };
-        console.log(
-          `📸 Simulated yesterday snapshot (${yesterdayKey}): ${fmtMoney(
-            grandTotal * 0.8
-          )}€`
-        );
-      }
-
-      if (mode === "today") {
-        newSnaps[`dashboard_${todayKey}`] = {
-          value: grandTotal,
-          dateKey: todayKey,
-          ts: Date.now(),
-          sim: true,
-        };
-        console.log(
-          `📸 Simulated today snapshot (${todayKey}): ${fmtMoney(
-            grandTotal
-          )}€`
-        );
-      }
-
-      setSnapshots(newSnaps);
-      localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
-
-      toast.success(
-        mode === "yesterday"
-          ? "Simulated yesterday snapshot"
-          : "Simulated today snapshot",
-        {
-          icon: null,
-          style: {
-            background: "#141414",
-            color: "#fff",
-            border: "1px solid #ff8c00",
-            boxShadow: "0 0 15px rgba(255,140,0,0.25)",
-            fontWeight: 600,
-            backdropFilter: "blur(8px)",
-            opacity: 0.95,
-          },
-          duration: 4000,
-        }
+    if (mode === "yesterday") {
+      newSnaps[`dashboard_${yesterdayKey}`] = {
+        value: grandTotal * 0.8,
+        dateKey: yesterdayKey,
+        ts: Date.now() - 86400000,
+        sim: false, // ✅ now counts as a real snapshot
+      };
+      console.log(
+        `📸 Simulated yesterday snapshot (${yesterdayKey}): ${fmtMoney(
+          grandTotal * 0.8
+        )}€`
       );
-    };
-  }, [snapshots, grandTotal]);
+    }
+
+    if (mode === "today") {
+      newSnaps[`dashboard_${todayKey}`] = {
+        value: grandTotal,
+        dateKey: todayKey,
+        ts: Date.now(),
+        sim: false, // ✅ now counts as a real snapshot
+      };
+      console.log(
+        `📸 Simulated today snapshot (${todayKey}): ${fmtMoney(grandTotal)}€`
+      );
+    }
+
+    setSnapshots(newSnaps);
+    localStorage.setItem("cs2-snapshots", JSON.stringify(newSnaps));
+
+    toast.success(
+      mode === "yesterday"
+        ? "Simulated yesterday snapshot"
+        : "Simulated today snapshot",
+      {
+        icon: null,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+        duration: 4000,
+      }
+    );
+  };
+}, [snapshots, grandTotal]);
+
+/* ----------------------------- API simulator ----------------------------- */
+useEffect(() => {
+  window.apiSim = (state) => {
+    if (state === "stable") toast("apiStable");
+    else if (state === "429") toast("api429");
+    else if (state === "down") toast("apiDown");
+  };
+}, []);   
 
   /* --------------------------- Color menu helpers --------------------------- */
   const openColorMenuAtButton = (tab, i, e) => {
@@ -1284,7 +1291,7 @@ export default function Home() {
                 </div>
 
                 {/* Only the % text, slightly larger than base */}
-                <div className="text-[15px] font-medium tracking-tight">
+                <div className="text-[22px] font-medium tracking-tight">
                   <span
                     className={
                       dashPct > 0
@@ -1294,11 +1301,11 @@ export default function Home() {
                         : "text-neutral-300"
                     }
                   >
-                    {dashPct > 0
-                      ? `It went up by +${Math.abs(dashPct).toFixed(2)}%.`
-                      : dashPct < 0
-                      ? `It went down by -${Math.abs(dashPct).toFixed(2)}%.`
-                      : "It stayed the same since last snapshot."}
+                     {dashPct > 0
+                       ? `It went up by +${Math.abs(dashPct).toFixed(2)}%.`
+                       : dashPct < 0
+                       ? `It went down by -${Math.abs(dashPct).toFixed(2)}%.`
+                       : "It did not change."}
                   </span>
                 </div>
               </div>
