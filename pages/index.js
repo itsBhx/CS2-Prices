@@ -126,6 +126,10 @@ export default function Home() {
   const [tabs, setTabs] = useState([]);
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [showSettings, setShowSettings] = useState(false);
+  const [modal, setModal] = useState({ open: false, mode: null, initialData: null });
+  const openModal = (mode, data = null) => setModal({ open: true, mode, initialData: data });
+  const closeModal = () => setModal({ open: false, mode: null, initialData: null });
+
 
   const [data, setData] = useState({});
   const [totals, setTotals] = useState({});
@@ -379,15 +383,8 @@ if (error) throw error;
 
   /* ------------------------------ Tabs & Rows ------------------------------- */
   const addTab = () => {
-    const name = prompt("New tab name:");
+    openModal("addTab");
     if (!name) return;
-
-    const image = prompt("Optional image URL (50x50 recommended):") || null;
-
-    setTabs([...tabs, { name, image }]);
-    setData({ ...data, [name]: [] });
-    setActiveTab(name);
-    setShowSettings(false);
   };
 
   const removeTab = (tab) => {
@@ -404,17 +401,15 @@ if (error) throw error;
   };
 
   const addFolder = () => {
-    const name = prompt("New folder name:");
+    openModal("addFolder");
     if (!name || tabs.find((t) => typeof t === "object" && t.folder === name))
       return;
     setTabs([...tabs, { folder: name, tabs: [], open: true }]);
   };
 
   const addTabToFolder = (folderName) => {
-    const name = prompt("New tab name:");
+    openModal("addTab");
     if (!name) return;
-
-    const image = prompt("Optional image URL (50x50 recommended):") || null;
 
     setTabs((prev) =>
       prev.map((t) =>
@@ -1386,7 +1381,15 @@ useEffect(() => {
             return (
               <div
                 key={`tab-${name}-${idx}`}
-                onClick={() => setActiveTab(name)}
+                onClick={(e) => {
+  if (e.ctrlKey) {
+    if (typeof t === "object" && t.folder)
+      openModal("editFolder", { name: t.folder });
+    else openModal("editTab", { name: getTabName(t), image: t.image || "" });
+  } else {
+    setActiveTab(name);
+  }
+}}
                 className={`relative px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 font-semibold tracking-wide transition-all duration-300 ${
                   isActive
                     ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
@@ -1931,6 +1934,162 @@ useEffect(() => {
 
 {/* Watermark */}
 <Watermark />
+   
+   {/* Mini Modal System */}
+{modal.open && (
+  <MiniModal
+    mode={modal.mode}
+    initialData={modal.initialData}
+    onClose={closeModal}
+    onConfirm={(values) => {
+      const { name, image } = values;
+
+      if (modal.mode === "addTab") {
+        setTabs((prev) => [...prev, { name, image }]);
+        setData((p) => ({ ...p, [name]: [] }));
+        toast.success("🧩 New tab added!", {
+          style: {
+            background: "#141414",
+            color: "#fff",
+            border: "1px solid #ff8c00",
+            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+            fontWeight: 600,
+          },
+        });
+      }
+
+      if (modal.mode === "addFolder") {
+        setTabs((prev) => [...prev, { folder: name, tabs: [], open: true }]);
+        toast.success("📂 Folder created!", {
+          style: {
+            background: "#141414",
+            color: "#fff",
+            border: "1px solid #ff8c00",
+            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+            fontWeight: 600,
+          },
+        });
+      }
+
+      if (modal.mode === "editTab") {
+        setTabs((prev) =>
+          prev.map((t) =>
+            getTabName(t) === modal.initialData.name
+              ? { ...t, name, image }
+              : t
+          )
+        );
+        setData((prev) => {
+          const next = { ...prev };
+          next[name] = next[modal.initialData.name];
+          delete next[modal.initialData.name];
+          return next;
+        });
+        toast.success("✏️ Tab updated!", {
+          style: {
+            background: "#141414",
+            color: "#fff",
+            border: "1px solid #ff8c00",
+            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+            fontWeight: 600,
+          },
+        });
+      }
+
+      if (modal.mode === "editFolder") {
+        setTabs((prev) =>
+          prev.map((t) =>
+            typeof t === "object" && t.folder === modal.initialData.name
+              ? { ...t, folder: name }
+              : t
+          )
+        );
+        toast.success("✏️ Folder renamed!", {
+          style: {
+            background: "#141414",
+            color: "#fff",
+            border: "1px solid #ff8c00",
+            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+            fontWeight: 600,
+          },
+        });
+      }
+
+      closeModal();
+    }}
+  />
+)}
 </div>
 );
+}
+function MiniModal({ mode, onClose, onConfirm, initialData }) {
+  const [name, setName] = useState(initialData?.name || "");
+  const [image, setImage] = useState(initialData?.image || "");
+
+  const confirm = () => {
+    if (!name.trim()) return;
+    onConfirm({ name: name.trim(), image: image.trim() });
+  };
+
+  useEffect(() => {
+    const esc = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+
+  const titles = {
+    addTab: "Add New Tab",
+    addFolder: "Create New Folder",
+    editTab: "Edit Tab",
+    editFolder: "Edit Folder",
+  };
+
+  const showImage = mode === "addTab" || mode === "editTab";
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[1000] animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 w-[90%] max-w-sm shadow-[0_0_25px_rgba(255,140,0,0.25)] animate-scaleIn"
+      >
+        <h3 className="text-xl font-semibold text-orange-400 mb-4 text-center">
+          {titles[mode]}
+        </h3>
+
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter name"
+          className="w-full mb-3 bg-neutral-800 text-gray-100 px-3 py-2 rounded border border-neutral-700 focus:border-orange-500 outline-none"
+        />
+
+        {showImage && (
+          <input
+            value={image}
+            onChange={(e) => setImage(e.target.value)}
+            placeholder="Optional image URL"
+            className="w-full mb-3 bg-neutral-800 text-gray-100 px-3 py-2 rounded border border-neutral-700 focus:border-orange-500 outline-none"
+          />
+        )}
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirm}
+            className="px-4 py-1.5 rounded bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold shadow-md hover:shadow-orange-500/40 transition-all"
+          >
+            {mode.startsWith("add") ? "Add" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
