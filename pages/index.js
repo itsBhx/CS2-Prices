@@ -385,7 +385,6 @@ if (error) throw error;
   /* ------------------------------ Tabs & Rows ------------------------------- */
   const addTab = () => {
     openModal("addTab");
-    if (!name) return;
   };
 
   const removeTab = (tab) => {
