@@ -1232,130 +1232,134 @@ useEffect(() => {
       {/* Tab strip */}
       {!showSettings && (
         <nav className="sticky top-[112px] z-40 flex flex-wrap items-center gap-2 px-6 py-3 bg-neutral-900/75 border-b border-neutral-800 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
-          {tabs.map((t, idx) => {
-            // Folder
-            if (typeof t === "object" && t.folder) {
-              return (
-                <div
-  onClick={(e) => {
-    e.stopPropagation();
-    if (e.ctrlKey) {
-      openModal("editFolder", { name: t.folder });
-    } else {
-      toggleFolder(t.folder);
-    }
-  }}
-  className={`flex items-center px-3 py-2 rounded-lg cursor-pointer font-semibold tracking-wide transition-all duration-300 ${
-    t.open
-      ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
-      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
-  }`}
->
-  <span className="mr-1 font-medium">{t.folder}</span>
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className={`h-3 w-3 transition-transform ${t.open ? "rotate-180" : ""}`}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-  </svg>
-</div>
-
-{t.open && (
-  <div
-    onClick={(e) => e.stopPropagation()}
-    className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 inline-block"
-    style={{
-      width: "max-content",
-      whiteSpace: "nowrap",
-      maxWidth: "95vw",
-    }}
-  >
-                      <div className="flex flex-col py-1">
-                        {(t.tabs || []).map((sub, i) => {
-                          const subName = getTabName(sub);
-                          const subImg =
-                            typeof sub === "object" ? sub.image : null;
-                          const active = activeTab === subName;
-
-                          return (
-<div
-  key={`sub-${subName}-${i}`}
-  onClick={(e) => {
-    if (e.ctrlKey) {
-      openModal("editTab", { name: subName, image: sub.image || "" });
-    } else {
-      setActiveTab(subName);
-    }
-  }}
-  className={`flex items-center justify-between ...`}
->
-                              <div className="flex items-center gap-2">
-                                {subImg && (
-                                  <img
-                                    src={subImg}
-                                    alt=""
-                                    className="w-[28px] h-[28px] object-contain mr-2"
-                                  />
-                                )}
-                                <span
-                                  className="block break-words leading-tight"
-                                  style={{
-                                    whiteSpace: "normal",
-                                    lineClamp: 2,
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: "vertical",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  {subName}
-                                </span>
-                              </div>
-
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeSubTab(t.folder, sub);
-                                }}
-                                className="ml-2 text-xs text-neutral-400 hover:text-red-400 transition hover:scale-110"
-                                title="Delete tab"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          );
-                        })}
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addTabToFolder(t.folder);
-                          }}
-                          className="text-left w-full px-3 py-1.5 text-sm text-orange-400 hover:bg-neutral-800 rounded-b-lg"
-                        >
-                          ＋ Add Tab
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeTabOrFolder(t);
-                          }}
-                          className="flex items-center gap-2 text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
-                        >
-                          <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
-                          <span>Delete Folder</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
+{tabs.map((t, idx) => {
+  // Folder
+  if (typeof t === "object" && t.folder) {
+    return (
+      <div key={`folder-${t.folder}-${idx}`} className="relative" data-folder>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.ctrlKey) {
+              openModal("editFolder", { name: t.folder });
+            } else {
+              toggleFolder(t.folder);
             }
+          }}
+          className={`flex items-center px-3 py-2 rounded-lg cursor-pointer font-semibold tracking-wide transition-all duration-300 ${
+            t.open
+              ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
+              : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
+          }`}
+        >
+          <span className="mr-1 font-medium">{t.folder}</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-3 w-3 transition-transform ${t.open ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+
+        {t.open && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 inline-block"
+            style={{
+              width: "max-content",
+              whiteSpace: "nowrap",
+              maxWidth: "95vw",
+            }}
+          >
+            <div className="flex flex-col py-1">
+              {(t.tabs || []).map((sub, i) => {
+                const subName = getTabName(sub);
+                const subImg = typeof sub === "object" ? sub.image : null;
+                const active = activeTab === subName;
+
+                return (
+                  <div
+                    key={`sub-${subName}-${i}`}
+                    onClick={(e) => {
+                      if (e.ctrlKey) {
+                        openModal("editTab", { name: subName, image: sub.image || "" });
+                      } else {
+                        setActiveTab(subName);
+                      }
+                    }}
+                    className={`flex items-center justify-between px-3 py-1.5 text-sm cursor-pointer ${
+                      active
+                        ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white"
+                        : "text-neutral-300 hover:bg-neutral-800 hover:text-orange-400"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {subImg && (
+                        <img
+                          src={subImg}
+                          alt=""
+                          className="w-[28px] h-[28px] object-contain mr-2"
+                        />
+                      )}
+                      <span
+                        className="block break-words leading-tight"
+                        style={{
+                          whiteSpace: "normal",
+                          lineClamp: 2,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {subName}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeSubTab(t.folder, sub);
+                      }}
+                      className="ml-2 text-xs text-neutral-400 hover:text-red-400 transition hover:scale-110"
+                      title="Delete tab"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addTabToFolder(t.folder);
+                }}
+                className="text-left w-full px-3 py-1.5 text-sm text-orange-400 hover:bg-neutral-800 rounded-b-lg"
+              >
+                ＋ Add Tab
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeTabOrFolder(t);
+                }}
+                className="flex items-center gap-2 text-left w-full px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-800 rounded-b-lg border-t border-neutral-800"
+              >
+                <img src="/trash.svg" alt="Delete" className="w-4 h-4" />
+                <span>Delete Folder</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
             // Normal tab
             const name = getTabName(t);
