@@ -1992,48 +1992,57 @@ onConfirm={(values) => {
     });
   }
 
-  // ✏️ Edit Tab (root or subtab)
-  else if (modal.mode === "editTab") {
-    setTabs((prev) =>
-      prev.map((t) => {
-        if (typeof t === "object" && t.folder) {
-          return {
-            ...t,
-            tabs: t.tabs.map((sub) =>
-              getTabName(sub) === modal.initialData.name
-                ? { ...sub, name, image }
-                : sub
-            ),
-          };
-        }
-        // only rename actual tabs, not folders
-        if (!t.folder && getTabName(t) === modal.initialData.name) {
-          return { ...t, name, image };
-        }
-        return t;
-      })
-    );
-
-    // preserve data (root tabs and subtabs)
-    setData((prev) => {
-      const next = { ...prev };
-      if (next[modal.initialData.name]) {
-        next[name] = next[modal.initialData.name];
-        delete next[modal.initialData.name];
+// ✏️ Edit Tab (root or subtab)
+else if (modal.mode === "editTab") {
+  setTabs((prev) =>
+    prev.map((t) => {
+      if (typeof t === "object" && t.folder) {
+        return {
+          ...t,
+          tabs: t.tabs.map((sub) =>
+            getTabName(sub) === modal.initialData.name
+              ? { ...sub, name, image }
+              : sub
+          ),
+        };
       }
-      return next;
-    });
+      // only rename actual tabs, not folders
+      if (!t.folder && getTabName(t) === modal.initialData.name) {
+        return { ...t, name, image };
+      }
+      return t;
+    })
+  );
 
-    toast.success("✏️ Tab updated!", {
-      style: {
-        background: "#141414",
-        color: "#fff",
-        border: "1px solid #ff8c00",
-        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-        fontWeight: 600,
-      },
-    });
-  }
+  // ✅ Preserve data safely
+  setData((prev) => {
+    const next = { ...prev };
+    const oldName = modal.initialData.name;
+
+    // Only move data if the name actually changed
+    if (oldName !== name && next[oldName]) {
+      next[name] = next[oldName];
+      delete next[oldName];
+    }
+
+    // Always keep the existing rows if only image changed
+    if (oldName === name && next[oldName]) {
+      next[oldName] = [...next[oldName]];
+    }
+
+    return next;
+  });
+
+  toast.success("✏️ Tab updated!", {
+    style: {
+      background: "#141414",
+      color: "#fff",
+      border: "1px solid #ff8c00",
+      boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+      fontWeight: 600,
+    },
+  });
+}
 
   // ✏️ Edit Folder
   else if (modal.mode === "editFolder") {
