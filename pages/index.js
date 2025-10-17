@@ -2147,3 +2147,69 @@ function MiniModal({ mode, onClose, onConfirm, initialData }) {
     </div>
   );
 }
+
+/* ==========================================================
+ 🧠 Developer Debug Console Commands
+ ----------------------------------------------------------
+ Toggle `debugMode` below to enable console testing features.
+ ========================================================== */
+
+const debugMode = false; // set to true only for internal testing!
+
+if (debugMode && typeof window !== "undefined") {
+  /* ====================== 🔧 API Simulator ======================
+     Simulate Steam API behavior and test throttling toasts.
+
+     ▶ Commands:
+       apiSim("429")   → Simulates a Steam 429 throttle warning
+  =============================================================== */
+  window.apiSim = (type) => {
+    if (type === "429") {
+      toast("⚠️ Steam throttled — pausing 30s");
+      console.log("API Sim: 429 Triggered");
+    } else {
+      console.log("API Sim: Unknown type");
+    }
+  };
+
+  /* ====================== 📊 Snapshot Simulator ======================
+     Generate fake snapshot % feedback and toasts for testing visuals.
+
+     ▶ Commands:
+       snapSim("positive") → Displays random +% increase
+       snapSim("negative") → Displays random -% decrease
+       snapSim("zero")     → Displays 'It did not change.'
+  ===================================================================== */
+  window.snapSim = (type) => {
+    toast("📊 Displaying random snapshot values for testing", {
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        fontWeight: 600,
+      },
+    });
+    console.log(`Snapshot Sim triggered: ${type}`);
+  };
+
+  /* ====================== 🧩 Verification Simulator ======================
+     Simulate verification & integrity states for release validation.
+
+     ▶ Commands:
+       verifySim("authorized")   → Simulates normal operation
+       verifySim("unauthorized") → Simulates blocked/unauth access
+       verifySim("tamper")       → Simulates code integrity warning
+  ========================================================================== */
+  window.verifySim = (mode) => {
+    console.log(`Verification Sim triggered: ${mode}`);
+  };
+
+  /* ====================== ☁️ Cloud Actions (for internal use) ======================
+     Quick-access cloud sync helpers (optional for debugging only)
+
+     ▶ Commands:
+       toast("cloudSaved")   → Simulate 'Cloud Saved' toast
+       toast("cloudLoaded")  → Simulate 'Cloud Loaded' toast
+       toast("cloudError")   → Simulate 'Cloud Error' toast
+  =============================================================================== */
+}
