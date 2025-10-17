@@ -161,18 +161,24 @@ export default function Home() {
         lastUpdatedAt,
       };
 
-      const { error } = await supabase
-        .from("user_data")
-        .upsert(
-          {
-            device_id: deviceId,
-            blob: payload,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "device_id" }
-        );
+// 🧹 Automatically remove test data when running on non-production environments
+if (process.env.NEXT_PUBLIC_VERCEL_ENV !== "production") {
+  console.log("🧹 Non-production deploy detected — cleaning old test data for this device_id");
+  await supabase.from("user_data").delete().eq("device_id", deviceId);
+}
 
-      if (error) throw error;
+const { error } = await supabase
+  .from("user_data")
+  .upsert(
+    {
+      device_id: deviceId,
+      blob: payload,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "device_id" }
+  );
+
+if (error) throw error;
 
       toast.success("Synced to cloud", {
         icon: <img src="/upload.svg" alt="" className="w-4 h-4" />,
@@ -1794,7 +1800,7 @@ useEffect(() => {
   rel="noopener noreferrer"
   className="fixed bottom-2 right-3 z-[999] text-[11px] text-neutral-500/40 hover:text-orange-400/70 transition-all select-none"
 >
-  © 2025 CS2 Prices — itsBhx
+  © 2025 CS2 Prices by Bhx
 </a>
     </div>
   );
