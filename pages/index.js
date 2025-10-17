@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { supabase } from "../lib/supabaseClient";
+console.log("🔎 Vercel environment:", process.env.NEXT_PUBLIC_VERCEL_ENV);
 
 /* ============================================================================
    Persistent Device ID (owner key for Supabase row)
@@ -162,7 +163,9 @@ export default function Home() {
       };
 
 // 🧹 Automatically remove test data when running on non-production environments
-if (process.env.NEXT_PUBLIC_VERCEL_ENV !== "production") {
+// Detect environment via Vercel or fallback
+const env = process.env.NEXT_PUBLIC_VERCEL_ENV || "production";
+if (env !== "production") {
   console.log("🧹 Non-production deploy detected — cleaning old test data for this device_id");
   await supabase.from("user_data").delete().eq("device_id", deviceId);
 }
