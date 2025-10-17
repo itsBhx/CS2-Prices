@@ -87,56 +87,6 @@ const DEFAULT_SETTINGS = {
 };
 
 /* ============================================================================
-   Security & Verification System (SSR-safe)
-============================================================================ */
-useEffect(() => {
-  const legitDomains = ["cs-2-prices.vercel.app", "www.cs-2-prices.vercel.app"];
-  const currentHost = window.location.hostname;
-  const isLegit = legitDomains.includes(currentHost);
-  const signature = process.env.NEXT_PUBLIC_SIGNATURE || "unknown-signature";
-
-  // Domain verification
-  if (!isLegit) {
-    console.warn("⚠️ Unauthorized domain detected:", currentHost);
-    localStorage.setItem("unauthorized_copy", "true");
-  } else {
-    localStorage.removeItem("unauthorized_copy");
-  }
-
-  // Signature verification
-  if (signature !== "Bhx-2025-release") {
-    console.warn("⚠️ Build signature mismatch. Potential tampering detected.");
-  }
-
-  // Expose helper for Supabase
-  window.verifyHost = () => {
-    if (!isLegit) {
-      alert("⚠️ Unauthorized deployment — Cloud Sync disabled for safety.");
-      return false;
-    }
-    return true;
-  };
-
-  // Console testing helpers
-  window.verifySim = (mode) => {
-    if (mode === "unauthorized") {
-      localStorage.setItem("unauthorized_copy", "true");
-      console.log("🧪 Simulated unauthorized domain");
-      location.reload();
-    } else if (mode === "authorized") {
-      localStorage.removeItem("unauthorized_copy");
-      console.log("🧪 Simulated authorized domain");
-      location.reload();
-    } else if (mode === "tamper") {
-      console.warn("🧪 Simulated signature mismatch");
-      console.warn("⚠️ Build signature mismatch. Potential tampering detected.");
-    } else {
-      console.log("Usage: verifySim('unauthorized' | 'authorized' | 'tamper')");
-    }
-  };
-}, []);
-
-/* ============================================================================
    Component: Home (pages/index.js)
 ============================================================================ */
 export default function Home() {
@@ -197,6 +147,56 @@ export default function Home() {
   useEffect(() => {
     if (lastUpdatedAt) localStorage.setItem("cs2-lastUpdatedAt", lastUpdatedAt);
   }, [lastUpdatedAt]);
+
+   /* ============================================================================
+   Security & Verification System (SSR-safe)
+============================================================================ */
+useEffect(() => {
+  const legitDomains = ["cs-2-prices.vercel.app", "www.cs-2-prices.vercel.app"];
+  const currentHost = window.location.hostname;
+  const isLegit = legitDomains.includes(currentHost);
+  const signature = process.env.NEXT_PUBLIC_SIGNATURE || "unknown-signature";
+
+  // Domain verification
+  if (!isLegit) {
+    console.warn("⚠️ Unauthorized domain detected:", currentHost);
+    localStorage.setItem("unauthorized_copy", "true");
+  } else {
+    localStorage.removeItem("unauthorized_copy");
+  }
+
+  // Signature verification
+  if (signature !== "Bhx-2025-release") {
+    console.warn("⚠️ Build signature mismatch. Potential tampering detected.");
+  }
+
+  // Expose helper for Supabase
+  window.verifyHost = () => {
+    if (!isLegit) {
+      alert("⚠️ Unauthorized deployment — Cloud Sync disabled for safety.");
+      return false;
+    }
+    return true;
+  };
+
+  // Console testing helpers
+  window.verifySim = (mode) => {
+    if (mode === "unauthorized") {
+      localStorage.setItem("unauthorized_copy", "true");
+      console.log("🧪 Simulated unauthorized domain");
+      location.reload();
+    } else if (mode === "authorized") {
+      localStorage.removeItem("unauthorized_copy");
+      console.log("🧪 Simulated authorized domain");
+      location.reload();
+    } else if (mode === "tamper") {
+      console.warn("🧪 Simulated signature mismatch");
+      console.warn("⚠️ Build signature mismatch. Potential tampering detected.");
+    } else {
+      console.log("Usage: verifySim('unauthorized' | 'authorized' | 'tamper')");
+    }
+  };
+}, []);
 
   /* ------------------------------ Supabase --------------------------------- */
   async function saveToCloud() {
