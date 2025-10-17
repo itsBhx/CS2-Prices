@@ -908,7 +908,7 @@ useEffect(() => {
       console.log(`📉 SnapSim → ${text}`);
     } else if (mode === "zero") {
       text = "It did not change.";
-      colorClass = "text-neutral-300 drop-shadow-[0_0_13px_rgba(160,160,160,0.25)]";
+      colorClass = "text-neutral-300 drop-shadow-[0_0_6px_rgba(160,160,160,0.25)]";
       console.log("⏸ SnapSim → It did not change.");
     } else {
       console.warn("Usage: snapSim('positive' | 'negative' | 'zero')");
