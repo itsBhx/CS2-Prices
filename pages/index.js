@@ -1237,47 +1237,43 @@ useEffect(() => {
             if (typeof t === "object" && t.folder) {
               return (
                 <div
-                  key={`folder-${t.folder}-${idx}`}
-                  className="relative"
-                  data-folder
-                >
-onClick={(e) => {
-  e.stopPropagation();
-  if (e.ctrlKey) {
-    openModal("editFolder", { name: t.folder });
-  } else {
-    toggleFolder(t.folder);
-  }
-}}
-                    <span className="mr-1 font-medium">{t.folder}</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`h-3 w-3 transition-transform ${
-                        t.open ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
+  onClick={(e) => {
+    e.stopPropagation();
+    if (e.ctrlKey) {
+      openModal("editFolder", { name: t.folder });
+    } else {
+      toggleFolder(t.folder);
+    }
+  }}
+  className={`flex items-center px-3 py-2 rounded-lg cursor-pointer font-semibold tracking-wide transition-all duration-300 ${
+    t.open
+      ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
+      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
+  }`}
+>
+  <span className="mr-1 font-medium">{t.folder}</span>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={`h-3 w-3 transition-transform ${t.open ? "rotate-180" : ""}`}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+</div>
 
-                  {t.open && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 inline-block"
-                      style={{
-                        width: "max-content",
-                        whiteSpace: "nowrap",
-                        maxWidth: "95vw",
-                      }}
-                    >
+{t.open && (
+  <div
+    onClick={(e) => e.stopPropagation()}
+    className="absolute top-full left-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-lg z-20 inline-block"
+    style={{
+      width: "max-content",
+      whiteSpace: "nowrap",
+      maxWidth: "95vw",
+    }}
+  >
                       <div className="flex flex-col py-1">
                         {(t.tabs || []).map((sub, i) => {
                           const subName = getTabName(sub);
