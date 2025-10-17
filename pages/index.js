@@ -1940,6 +1940,7 @@ onConfirm={(values) => {
   if (exists) {
     toast.error("Name already exists", {
       style: {
+        icon: null,
         background: "#141414",
         color: "#fff",
         border: "1px solid #ff4d4d",
@@ -1965,9 +1966,10 @@ onConfirm={(values) => {
     setData((p) => ({ ...p, [name]: [] }));
 
     toast.success(
-      modal.parentFolder ? "🧩 Tab added to folder!" : "🧩 New tab added!",
+      modal.parentFolder ? "Tab added to folder!" : "New tab added!",
       {
         style: {
+          icon: null,
           background: "#141414",
           color: "#fff",
           border: "1px solid #ff8c00",
@@ -1981,8 +1983,9 @@ onConfirm={(values) => {
   // 🗂️ Add Folder
   else if (modal.mode === "addFolder") {
     setTabs((prev) => [...prev, { folder: name, tabs: [], open: true }]);
-    toast.success("📂 Folder created!", {
+    toast.success("Folder created!", {
       style: {
+        icon: null,
         background: "#141414",
         color: "#fff",
         border: "1px solid #ff8c00",
@@ -2033,8 +2036,9 @@ else if (modal.mode === "editTab") {
     return next;
   });
 
-  toast.success("✏️ Tab updated!", {
+  toast.success("Tab updated!", {
     style: {
+      icon: null,
       background: "#141414",
       color: "#fff",
       border: "1px solid #ff8c00",
@@ -2054,8 +2058,9 @@ else if (modal.mode === "editTab") {
       )
     );
 
-    toast.success("✏️ Folder renamed!", {
+    toast.success("Folder renamed!", {
       style: {
+        icon: null,
         background: "#141414",
         color: "#fff",
         border: "1px solid #ff8c00",
