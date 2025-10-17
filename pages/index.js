@@ -89,7 +89,7 @@ function Watermark() {
 
   return (
     <a
-      href="https://x.com/itsBhx"
+      href="steamcommunity.com/id/itsBhx/"
       target="_blank"
       rel="noopener noreferrer"
       className={`fixed bottom-2 right-3 z-[999] text-[11px] transition-all select-none ${
@@ -963,11 +963,58 @@ useEffect(() => {
 /* ----------------------------- API simulator ----------------------------- */
 useEffect(() => {
   window.apiSim = (state) => {
-    if (state === "stable") toast("apiStable");
-    else if (state === "429") toast("api429");
-    else if (state === "down") toast("apiDown");
+    if (!["stable", "429", "down"].includes(state)) {
+      console.warn("Usage: apiSim('stable' | '429' | 'down')");
+      return;
+    }
+
+    // Update header display color
+    setApiStatus(state);
+    console.log(`🧪 Simulated API state: ${state}`);
+
+    // Show visual toast feedback
+    if (state === "stable") {
+      toast.success("Steam API stable", {
+        icon: null,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #00cc66",
+          boxShadow: "0 0 15px rgba(0,204,102,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    } else if (state === "429") {
+      toast("Steam API rate limited", {
+        icon: null,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ffcc00",
+          boxShadow: "0 0 15px rgba(255,204,0,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    } else if (state === "down") {
+      toast.error("Steam API offline", {
+        icon: null,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff4d4d",
+          boxShadow: "0 0 15px rgba(255,77,77,0.3)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+      });
+    }
   };
-}, []);   
+}, [setApiStatus]);
 
   /* --------------------------- Color menu helpers --------------------------- */
   const openColorMenuAtButton = (tab, i, e) => {
