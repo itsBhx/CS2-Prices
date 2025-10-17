@@ -89,11 +89,11 @@ function Watermark() {
 
   return (
     <a
-      href="steamcommunity.com/id/itsBhx/"
+      href="https://steamcommunity.com/id/itsBhx"
       target="_blank"
       rel="noopener noreferrer"
-      className={`fixed bottom-2 right-3 z-[999] text-[11px] transition-all select-none ${
-        unauth
+         className={`fixed bottom-2 right-3 z-[999] text-[11px] select-none opacity-0 animate-fadeIn transition-all ${
+         unauth
           ? "text-red-400/70 hover:text-red-300"
           : "text-neutral-500/40 hover:text-orange-400/70"
       }`}
