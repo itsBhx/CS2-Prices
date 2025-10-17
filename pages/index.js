@@ -1787,10 +1787,15 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Watermark */}
-      <div className="fixed bottom-2 right-3 z-[999] text-[11px] text-neutral-500/40 hover:text-orange-400/70 transition-all select-none">
-        © 2025 CS2 Prices by Bhx
-      </div>
+{/* Watermark */}
+<a
+  href="https://x.com/itsBhx"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="fixed bottom-2 right-3 z-[999] text-[11px] text-neutral-500/40 hover:text-orange-400/70 transition-all select-none"
+>
+  © 2025 CS2 Prices — itsBhx
+</a>
     </div>
   );
 }
