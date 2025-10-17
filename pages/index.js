@@ -73,6 +73,38 @@ function getTabName(tab) {
 }
 
 /* ============================================================================
+   Watermark Component (SSR-safe + Reactive)
+============================================================================ */
+function Watermark() {
+  const [unauth, setUnauth] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const update = () =>
+      setUnauth(localStorage.getItem("unauthorized_copy") === "true");
+    update();
+    window.addEventListener("storage", update);
+    return () => window.removeEventListener("storage", update);
+  }, []);
+
+  return (
+    <a
+      href="https://x.com/itsBhx"
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`fixed bottom-2 right-3 z-[999] text-[11px] transition-all select-none ${
+        unauth
+          ? "text-red-400/70 hover:text-red-300"
+          : "text-neutral-500/40 hover:text-orange-400/70"
+      }`}
+    >
+      © 2025 CS2 Prices by Bhx
+      {unauth && <span className="ml-1 text-xs">(Unverified Build)</span>}
+    </a>
+  );
+}
+
+/* ============================================================================
    Defaults
 ============================================================================ */
 const DEFAULT_SETTINGS = {
@@ -152,6 +184,8 @@ export default function Home() {
    Security & Verification System (SSR-safe)
 ============================================================================ */
 useEffect(() => {
+  if (typeof window === "undefined") return;
+
   const legitDomains = ["cs-2-prices.vercel.app", "www.cs-2-prices.vercel.app"];
   const currentHost = window.location.hostname;
   const isLegit = legitDomains.includes(currentHost);
@@ -1848,26 +1882,5 @@ useEffect(() => {
         </div>
       )}
 
-{/* Watermark (SSR-safe) */}
-{typeof window !== "undefined" && (
-  <a
-    href="https://x.com/itsBhx"
-    target="_blank"
-    rel="noopener noreferrer"
-    className={`fixed bottom-2 right-3 z-[999] text-[11px] transition-all select-none ${
-      typeof window !== "undefined" &&
-      localStorage.getItem("unauthorized_copy") === "true"
-        ? "text-red-400/70 hover:text-red-300"
-        : "text-neutral-500/40 hover:text-orange-400/70"
-    }`}
-  >
-    © 2025 CS2 Prices by Bhx
-    {typeof window !== "undefined" &&
-      localStorage.getItem("unauthorized_copy") === "true" && (
-        <span className="ml-1 text-xs">(Unverified Build)</span>
-      )}
-  </a>
-)}
-    </div>
-  );
-}
+{/* Watermark */}
+<Watermark />
