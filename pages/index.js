@@ -127,7 +127,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [showSettings, setShowSettings] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: null, initialData: null });
-  const openModal = (mode, data = null) => setModal({ open: true, mode, initialData: data });
+  const openModal = (mode, data = null, parentFolder = null) =>
+  setModal({ open: true, mode, initialData: data, parentFolder });
   const closeModal = () => setModal({ open: false, mode: null, initialData: null });
 
 
@@ -407,20 +408,9 @@ if (error) throw error;
     setTabs([...tabs, { folder: name, tabs: [], open: true }]);
   };
 
-  const addTabToFolder = (folderName) => {
-    openModal("addTab");
-    if (!name) return;
-
-    setTabs((prev) =>
-      prev.map((t) =>
-        typeof t === "object" && t.folder === folderName
-          ? { ...t, tabs: [...t.tabs, { name, image }] }
-          : t
-      )
-    );
-    setData((p) => ({ ...p, [name]: [] }));
-    setActiveTab(name);
-  };
+const addTabToFolder = (folderName) => {
+  openModal("addTab", null, folderName);
+};
 
   const toggleFolder = (folderName) =>
     setTabs((prev) =>
@@ -1299,15 +1289,17 @@ useEffect(() => {
                           const active = activeTab === subName;
 
                           return (
-                            <div
-                              key={`sub-${subName}-${i}`}
-                              onClick={() => setActiveTab(subName)}
-                              className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-pointer transition-all duration-200 ${
-                                active
-                                  ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white"
-                                  : "hover:bg-neutral-800 text-neutral-300 hover:text-orange-400"
-                              }`}
-                            >
+<div
+  key={`sub-${subName}-${i}`}
+  onClick={(e) => {
+    if (e.ctrlKey) {
+      openModal("editTab", { name: subName, image: sub.image || "" });
+    } else {
+      setActiveTab(subName);
+    }
+  }}
+  className={`flex items-center justify-between ...`}
+>
                               <div className="flex items-center gap-2">
                                 {subImg && (
                                   <img
@@ -1945,6 +1937,35 @@ useEffect(() => {
       const { name, image } = values;
 
       if (modal.mode === "addTab") {
+  setTabs((prev) => {
+    // Add inside folder if parentFolder exists
+    if (modal.parentFolder) {
+      return prev.map((t) =>
+        typeof t === "object" && t.folder === modal.parentFolder
+          ? { ...t, tabs: [...t.tabs, { name, image }] }
+          : t
+      );
+    }
+    // Otherwise add as root tab
+    return [...prev, { name, image }];
+  });
+
+  setData((p) => ({ ...p, [name]: [] }));
+
+  toast.success(
+    modal.parentFolder ? "🧩 Tab added to folder!" : "🧩 New tab added!",
+    {
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+        fontWeight: 600,
+      },
+    }
+  );
+}
+ {
         setTabs((prev) => [...prev, { name, image }]);
         setData((p) => ({ ...p, [name]: [] }));
         toast.success("🧩 New tab added!", {
@@ -1971,30 +1992,46 @@ useEffect(() => {
         });
       }
 
-      if (modal.mode === "editTab") {
-        setTabs((prev) =>
-          prev.map((t) =>
-            getTabName(t) === modal.initialData.name
-              ? { ...t, name, image }
-              : t
-          )
-        );
-        setData((prev) => {
-          const next = { ...prev };
-          next[name] = next[modal.initialData.name];
-          delete next[modal.initialData.name];
-          return next;
-        });
-        toast.success("✏️ Tab updated!", {
-          style: {
-            background: "#141414",
-            color: "#fff",
-            border: "1px solid #ff8c00",
-            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-            fontWeight: 600,
-          },
-        });
+if (modal.mode === "editTab") {
+  // rename both root or folder subtabs safely
+  setTabs((prev) =>
+    prev.map((t) => {
+      if (typeof t === "object" && t.folder) {
+        return {
+          ...t,
+          tabs: t.tabs.map((sub) =>
+            getTabName(sub) === modal.initialData.name
+              ? { ...sub, name, image }
+              : sub
+          ),
+        };
       }
+      return getTabName(t) === modal.initialData.name
+        ? { ...t, name, image }
+        : t;
+    })
+  );
+
+  // preserve tab data under the new name
+  setData((prev) => {
+    const next = { ...prev };
+    if (next[modal.initialData.name]) {
+      next[name] = next[modal.initialData.name];
+      delete next[modal.initialData.name];
+    }
+    return next;
+  });
+
+  toast.success("✏️ Tab updated!", {
+    style: {
+      background: "#141414",
+      color: "#fff",
+      border: "1px solid #ff8c00",
+      boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+      fontWeight: 600,
+    },
+  });
+}
 
       if (modal.mode === "editFolder") {
         setTabs((prev) =>
