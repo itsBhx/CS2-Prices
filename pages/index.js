@@ -2154,34 +2154,153 @@ function MiniModal({ mode, onClose, onConfirm, initialData }) {
  Toggle `debugMode` below to enable console testing features.
  ========================================================== */
 
-const debugMode = false; // set to true only for internal testing!
+const debugMode = false; // ⛔ set to true only for internal testing!
 
-if (debugMode && typeof window !== "undefined") {
-  /* ====================== 🔧 API Simulator ======================
-     Simulate Steam API behavior and test throttling toasts.
+if (typeof window !== "undefined") {
+  // First, clear any previously defined debug commands
+  delete window.apiSim;
+  delete window.snapSim;
+  delete window.verifySim;
 
-     ▶ Commands:
-       apiSim("429")   → Simulates a Steam 429 throttle warning
-  =============================================================== */
-  window.apiSim = (type) => {
-    if (type === "429") {
-      toast("⚠️ Steam throttled — pausing 30s");
-      console.log("API Sim: 429 Triggered");
-    } else {
-      console.log("API Sim: Unknown type");
-    }
-  };
+  if (debugMode) {
+    /* ====================== 🔧 API Simulator ======================
+       Simulate Steam API behavior and test throttling toasts.
 
-  /* ====================== 📊 Snapshot Simulator ======================
-     Generate fake snapshot % feedback and toasts for testing visuals.
+       ▶ Commands:
+         apiSim("stable") → Simulate Steam API stable
+         apiSim("429")    → Simulate Steam 429 throttle warning
+         apiSim("down")   → Simulate Steam API offline
+    =============================================================== */
+    window.apiSim = (state) => {
+      if (!["stable", "429", "down"].includes(state)) {
+        console.warn("Usage: apiSim('stable' | '429' | 'down')");
+        return;
+      }
 
-     ▶ Commands:
-       snapSim("positive") → Displays random +% increase
-       snapSim("negative") → Displays random -% decrease
-       snapSim("zero")     → Displays 'It did not change.'
-  ===================================================================== */
-  window.snapSim = (type) => {
-    toast("📊 Displaying random snapshot values for testing", {
+      console.log(`🧪 Simulated API state: ${state}`);
+
+      const styleBase = {
+        background: "#141414",
+        color: "#fff",
+        fontWeight: 600,
+        border: "",
+        boxShadow: "",
+      };
+
+      if (state === "stable") {
+        toast.success("Steam API stable", {
+          icon: null,
+          style: { ...styleBase, border: "1px solid #00cc66", boxShadow: "0 0 15px rgba(0,204,102,0.3)" },
+        });
+      } else if (state === "429") {
+        toast("Steam API rate limited", {
+          icon: null,
+          style: { ...styleBase, border: "1px solid #ffcc00", boxShadow: "0 0 15px rgba(255,204,0,0.3)" },
+        });
+      } else if (state === "down") {
+        toast.error("Steam API offline", {
+          icon: null,
+          style: { ...styleBase, border: "1px solid #ff4d4d", boxShadow: "0 0 15px rgba(255,77,77,0.3)" },
+        });
+      }
+    };
+
+    /* ====================== 📊 Snapshot Simulator ======================
+       Generate fake snapshot % feedback and toasts for testing visuals.
+
+       ▶ Commands:
+         snapSim("positive") → Displays random +% increase
+         snapSim("negative") → Displays random -% decrease
+         snapSim("zero")     → Displays 'It did not change.'
+    ===================================================================== */
+    window.snapSim = (mode = "positive") => {
+      const dashEl = document.querySelector("#dash-diff");
+      if (!dashEl) {
+        console.warn("⚠️ Dashboard % element not found.");
+        return;
+      }
+
+      let text = "";
+      let colorClass = "";
+
+      if (mode === "positive") {
+        const fakePct = (Math.random() * 10 + 0.5).toFixed(2);
+        text = `It went up by +${fakePct}%.`;
+        colorClass = "text-green-400 drop-shadow-[0_0_6px_rgba(0,255,0,0.2)]";
+        console.log(`📈 SnapSim → ${text}`);
+      } else if (mode === "negative") {
+        const fakePct = (Math.random() * 10 + 0.5).toFixed(2);
+        text = `It went down by -${fakePct}%.`;
+        colorClass = "text-red-400 drop-shadow-[0_0_6px_rgba(255,0,0,0.2)]";
+        console.log(`📉 SnapSim → ${text}`);
+      } else if (mode === "zero") {
+        text = "It did not change.";
+        colorClass = "text-neutral-300 drop-shadow-[0_0_6px_rgba(160,160,160,0.25)]";
+        console.log("⏸ SnapSim → It did not change.");
+      } else {
+        console.warn("Usage: snapSim('positive' | 'negative' | 'zero')");
+        return;
+      }
+
+      toast("Displaying random generated values", {
+        icon: null,
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.25)",
+          fontWeight: 600,
+          backdropFilter: "blur(8px)",
+          opacity: 0.95,
+        },
+        duration: 5000,
+      });
+
+      const oldText = dashEl.textContent;
+      const oldClass = dashEl.className;
+      dashEl.textContent = text;
+      dashEl.className = colorClass;
+
+      setTimeout(() => {
+        dashEl.textContent = oldText;
+        dashEl.className = oldClass;
+      }, 5000);
+    };
+
+    /* ====================== 🧩 Verification Simulator ======================
+       Simulate verification & integrity states for release validation.
+
+       ▶ Commands:
+         verifySim("authorized")   → Simulates normal operation
+         verifySim("unauthorized") → Simulates blocked/unauth access
+         verifySim("tamper")       → Simulates code integrity warning
+    ========================================================================== */
+    window.verifySim = (mode) => {
+      if (mode === "unauthorized") {
+        localStorage.setItem("unauthorized_copy", "true");
+        console.log("🧪 Simulated unauthorized domain");
+        location.reload();
+      } else if (mode === "authorized") {
+        localStorage.removeItem("unauthorized_copy");
+        console.log("🧪 Simulated authorized domain");
+        location.reload();
+      } else if (mode === "tamper") {
+        console.warn("🧪 Simulated signature mismatch");
+        console.warn("⚠️ Build signature mismatch. Potential tampering detected.");
+      } else {
+        console.log("Usage: verifySim('authorized' | 'unauthorized' | 'tamper')");
+      }
+    };
+
+    /* ====================== ☁️ Cloud Toast Simulators ======================
+       For internal debugging of cloud sync and system messages.
+
+       ▶ Commands:
+         toast("cloudSaved")
+         toast("cloudLoaded")
+         toast("cloudError")
+    ========================================================================== */
+    toast("🧠 Debug mode active", {
       style: {
         background: "#141414",
         color: "#fff",
@@ -2189,27 +2308,5 @@ if (debugMode && typeof window !== "undefined") {
         fontWeight: 600,
       },
     });
-    console.log(`Snapshot Sim triggered: ${type}`);
-  };
-
-  /* ====================== 🧩 Verification Simulator ======================
-     Simulate verification & integrity states for release validation.
-
-     ▶ Commands:
-       verifySim("authorized")   → Simulates normal operation
-       verifySim("unauthorized") → Simulates blocked/unauth access
-       verifySim("tamper")       → Simulates code integrity warning
-  ========================================================================== */
-  window.verifySim = (mode) => {
-    console.log(`Verification Sim triggered: ${mode}`);
-  };
-
-  /* ====================== ☁️ Cloud Actions (for internal use) ======================
-     Quick-access cloud sync helpers (optional for debugging only)
-
-     ▶ Commands:
-       toast("cloudSaved")   → Simulate 'Cloud Saved' toast
-       toast("cloudLoaded")  → Simulate 'Cloud Loaded' toast
-       toast("cloudError")   → Simulate 'Cloud Error' toast
-  =============================================================================== */
+  }
 }
