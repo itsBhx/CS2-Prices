@@ -1241,17 +1241,14 @@ useEffect(() => {
                   className="relative"
                   data-folder
                 >
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFolder(t.folder);
-                    }}
-                    className={`flex items-center px-3 py-2 rounded-lg cursor-pointer font-semibold tracking-wide transition-all duration-300 ${
-                      t.open
-                        ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_0_15px_rgba(255,140,0,0.4)] scale-[1.03]"
-                        : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-orange-400"
-                    }`}
-                  >
+onClick={(e) => {
+  e.stopPropagation();
+  if (e.ctrlKey) {
+    openModal("editFolder", { name: t.folder });
+  } else {
+    toggleFolder(t.folder);
+  }
+}}
                     <span className="mr-1 font-medium">{t.folder}</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -1933,28 +1930,58 @@ useEffect(() => {
     mode={modal.mode}
     initialData={modal.initialData}
     onClose={closeModal}
-    onConfirm={(values) => {
-      const { name, image } = values;
+onConfirm={(values) => {
+  const { name, image } = values;
 
-      if (modal.mode === "addTab") {
-  setTabs((prev) => {
-    // Add inside folder if parentFolder exists
-    if (modal.parentFolder) {
-      return prev.map((t) =>
-        typeof t === "object" && t.folder === modal.parentFolder
-          ? { ...t, tabs: [...t.tabs, { name, image }] }
-          : t
-      );
-    }
-    // Otherwise add as root tab
-    return [...prev, { name, image }];
-  });
+   if (modal.mode === "addTab" || modal.mode === "addFolder") {
+  const exists = tabs.some((t) =>
+    typeof t === "object" ? t.folder === name : getTabName(t) === name
+  );
+  if (exists) {
+    toast.error("Name already exists", {
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff4d4d",
+        fontWeight: 600,
+      },
+    });
+    return;
+  }
+}
 
-  setData((p) => ({ ...p, [name]: [] }));
+  // 🧩 Add Tab
+  if (modal.mode === "addTab") {
+    setTabs((prev) => {
+      if (modal.parentFolder) {
+        return prev.map((t) =>
+          typeof t === "object" && t.folder === modal.parentFolder
+            ? { ...t, tabs: [...t.tabs, { name, image }] }
+            : t
+        );
+      }
+      return [...prev, { name, image }];
+    });
+    setData((p) => ({ ...p, [name]: [] }));
 
-  toast.success(
-    modal.parentFolder ? "🧩 Tab added to folder!" : "🧩 New tab added!",
-    {
+    toast.success(
+      modal.parentFolder ? "🧩 Tab added to folder!" : "🧩 New tab added!",
+      {
+        style: {
+          background: "#141414",
+          color: "#fff",
+          border: "1px solid #ff8c00",
+          boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+          fontWeight: 600,
+        },
+      }
+    );
+  }
+
+  // 🗂️ Add Folder
+  else if (modal.mode === "addFolder") {
+    setTabs((prev) => [...prev, { folder: name, tabs: [], open: true }]);
+    toast.success("📂 Folder created!", {
       style: {
         background: "#141414",
         color: "#fff",
@@ -1962,98 +1989,75 @@ useEffect(() => {
         boxShadow: "0 0 15px rgba(255,140,0,0.3)",
         fontWeight: 600,
       },
-    }
-  );
-}
- {
-        setTabs((prev) => [...prev, { name, image }]);
-        setData((p) => ({ ...p, [name]: [] }));
-        toast.success("🧩 New tab added!", {
-          style: {
-            background: "#141414",
-            color: "#fff",
-            border: "1px solid #ff8c00",
-            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-            fontWeight: 600,
-          },
-        });
+    });
+  }
+
+  // ✏️ Edit Tab (root or subtab)
+  else if (modal.mode === "editTab") {
+    setTabs((prev) =>
+      prev.map((t) => {
+        if (typeof t === "object" && t.folder) {
+          return {
+            ...t,
+            tabs: t.tabs.map((sub) =>
+              getTabName(sub) === modal.initialData.name
+                ? { ...sub, name, image }
+                : sub
+            ),
+          };
+        }
+        // only rename actual tabs, not folders
+        if (!t.folder && getTabName(t) === modal.initialData.name) {
+          return { ...t, name, image };
+        }
+        return t;
+      })
+    );
+
+    // preserve data (root tabs and subtabs)
+    setData((prev) => {
+      const next = { ...prev };
+      if (next[modal.initialData.name]) {
+        next[name] = next[modal.initialData.name];
+        delete next[modal.initialData.name];
       }
+      return next;
+    });
 
-      if (modal.mode === "addFolder") {
-        setTabs((prev) => [...prev, { folder: name, tabs: [], open: true }]);
-        toast.success("📂 Folder created!", {
-          style: {
-            background: "#141414",
-            color: "#fff",
-            border: "1px solid #ff8c00",
-            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-            fontWeight: 600,
-          },
-        });
-      }
+    toast.success("✏️ Tab updated!", {
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+        fontWeight: 600,
+      },
+    });
+  }
 
-if (modal.mode === "editTab") {
-  // rename both root or folder subtabs safely
-  setTabs((prev) =>
-    prev.map((t) => {
-      if (typeof t === "object" && t.folder) {
-        return {
-          ...t,
-          tabs: t.tabs.map((sub) =>
-            getTabName(sub) === modal.initialData.name
-              ? { ...sub, name, image }
-              : sub
-          ),
-        };
-      }
-      return getTabName(t) === modal.initialData.name
-        ? { ...t, name, image }
-        : t;
-    })
-  );
+  // ✏️ Edit Folder
+  else if (modal.mode === "editFolder") {
+    setTabs((prev) =>
+      prev.map((t) =>
+        typeof t === "object" && t.folder === modal.initialData.name
+          ? { ...t, folder: name }
+          : t
+      )
+    );
 
-  // preserve tab data under the new name
-  setData((prev) => {
-    const next = { ...prev };
-    if (next[modal.initialData.name]) {
-      next[name] = next[modal.initialData.name];
-      delete next[modal.initialData.name];
-    }
-    return next;
-  });
+    toast.success("✏️ Folder renamed!", {
+      style: {
+        background: "#141414",
+        color: "#fff",
+        border: "1px solid #ff8c00",
+        boxShadow: "0 0 15px rgba(255,140,0,0.3)",
+        fontWeight: 600,
+      },
+    });
+  }
 
-  toast.success("✏️ Tab updated!", {
-    style: {
-      background: "#141414",
-      color: "#fff",
-      border: "1px solid #ff8c00",
-      boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-      fontWeight: 600,
-    },
-  });
-}
-
-      if (modal.mode === "editFolder") {
-        setTabs((prev) =>
-          prev.map((t) =>
-            typeof t === "object" && t.folder === modal.initialData.name
-              ? { ...t, folder: name }
-              : t
-          )
-        );
-        toast.success("✏️ Folder renamed!", {
-          style: {
-            background: "#141414",
-            color: "#fff",
-            border: "1px solid #ff8c00",
-            boxShadow: "0 0 15px rgba(255,140,0,0.3)",
-            fontWeight: 600,
-          },
-        });
-      }
-
-      closeModal();
-    }}
+  closeModal();
+}}
   />
 )}
 </div>
